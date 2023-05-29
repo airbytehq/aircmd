@@ -1,0 +1,9 @@
+{
+  "infra_runner": {
+      "version": "0.0.3",
+      "description": "Infra runner plugin for aircmd",
+      "entry_point": "infra_runner.runner:infra_runner_plugin",
+      "repository": "https://github.com/airbytehq/airbyte-infra.git",
+      "authors": ["cpdeethree <conor@airbyte.io>"]
+  }
+}

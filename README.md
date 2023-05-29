@@ -1,6 +1,8 @@
 # Aircmd
 
-Aircmd is an extensible CLI built with Python 3.11 and the Click framework. You can use aircmd to discover and install plugins that extend the functionality of the CLI. 
+Aircmd is an extensible command line interface (CLI) that discovers and manages installable plugins to define commands related to developing and operating Airbyte. 
+
+Aircmd makes use of Pydantic for data validation and Click for building the command line interface. You can use aircmd to discover and install plugins that perform various Airbyte related tasks
 
 ## Installation
 
@@ -34,7 +36,7 @@ If you want to be able to run the aircmd command from anywhere without using poe
 
 ## Plugin Discovery
 
-Aircmd uses a plugin manager to discover plugins. To discover plugins, make sure they are installed in the Python environment that aircmd is running in. You can use the following command to see a list of installed plugins:
+Aircmd uses a plugin manager to discover plugins. To discover plugins, make sure they are installed in the Python environment that aircmd is running in. You can use the following command to see a list of installed plugins and installable plugins:
 
 ```
 aircmd plugin list
@@ -45,27 +47,27 @@ aircmd plugin list
 To install a plugin, you can use the following command:
 
 ```
-aircmd plugin install airbyte_actions
+aircmd plugin install airbyte_oss
 ```
 
-This will install the `airbyte_actions` plugin and make its commands available in aircmd.
+This will install the `airbyte_oss` plugin and make its commands available in aircmd.
 
 ## Uninstalling a Plugin
 
 To uninstall a plugin, you can use the following command:
 
 ```
-aircmd plugin uninstall airbyte_actions
+aircmd plugin uninstall airbyte_oss
 ```
 
-This will remove the `airbyte_actions` plugin and its commands from aircmd. 
+This will remove the `airbyte_oss` plugin and its commands from aircmd. 
 
 ## Using a Plugin
 
-Once you have installed a plugin, you can use its commands in aircmd. Each plugin should be its own click command group. For example, if you have installed the `airbyte_actions` plugin, you can issue commands like this:
+Once you have installed a plugin, you can use its commands in aircmd. Each plugin should be its own click command group. For example, if you have installed the `airbyte_oss` plugin, you can issue commands like this:
 
 ```
-aircmd actions command1
+aircmd oss command1
 ```
 
-This will run the `command1` command from the `airbyte_actions` plugin.
+This will run the `command1` command from the `airbyte_oss` plugin.

@@ -1,25 +1,35 @@
 [tool.poetry]
 name = "aircmd"
-version = "0.1.0"
-description = "Extensible CLI with Click framework"
+version = "0.1.2"
+description = "Airbyte CLI"
 authors = ["cpdeethree <conor@airbyte.io>"]
 
 
 [tool.poetry.dependencies]
 python = "^3.11"
-click = "^8.1.3"
-mypy = "^1.2.0"
-pydantic = "^1.10.7"
-# uncomment for local development
-airbyte-actions = {path = "../airbyte-actions", develop = true}
+dagger-io = "^0.5.2"
+structlog = "^23.1.0"
+rich = "^13.3.5"
+pydantic = {version = "^2.0a4", allow-prereleases = true}
+requests = "^2.26.0"
+
+[tool.mypy]
+strict = "true"
 
 [tool.poetry.scripts]
-aircmd = "aircmd.main:cli"
+aircmd = "aircmd.main:main"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.0.262"
 mypy = "^1.2.0"
 
+#[tool.poetry.dev.dependencies]
+# Example plugin goes here. We run tests against it.
+# This also doubles as the official plugin registry
+[tool.poetry.group.test.dependencies]
+pytest = "^7.3.1"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
