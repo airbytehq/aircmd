@@ -94,17 +94,26 @@ test-tox-coverage = ["coverage (>=5.5)"]
 
 [[package]]
 name = "cattrs"
-version = "22.2.0"
+version = "23.1.0"
 description = "Composable complex class support for attrs and dataclasses."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "cattrs-22.2.0-py3-none-any.whl", hash = "sha256:bc12b1f0d000b9f9bee83335887d532a1d3e99a833d1bf0882151c97d3e68c21"},
-    {file = "cattrs-22.2.0.tar.gz", hash = "sha256:f0eed5642399423cf656e7b66ce92cdc5b963ecafd041d1b24d136fdde7acf6d"},
+    {file = "cattrs-23.1.0-py3-none-any.whl", hash = "sha256:9be29ab7041a3b9da67cad5daee578c511bcd52495ed85a6f8be3cf9d7c922d3"},
+    {file = "cattrs-23.1.0.tar.gz", hash = "sha256:57a5129bfa0c752d4f215311228ea6282bbaae0edbb27f575503df0a260e1c49"},
 ]
 
 [package.dependencies]
 attrs = ">=20"
+
+[package.extras]
+bson = ["pymongo (>=4.2.0,<5.0.0)"]
+cbor2 = ["cbor2 (>=5.4.6,<6.0.0)"]
+msgpack = ["msgpack (>=1.0.2,<2.0.0)"]
+orjson = ["orjson (>=3.5.2,<4.0.0)"]
+pyyaml = ["PyYAML (>=6.0,<7.0)"]
+tomlkit = ["tomlkit (>=0.11.4,<0.12.0)"]
+ujson = ["ujson (>=5.4.0,<6.0.0)"]
 
 [[package]]
 name = "certifi"
@@ -228,13 +237,13 @@ files = [
 
 [[package]]
 name = "dagger-io"
-version = "0.5.4"
+version = "0.6.0"
 description = "A client package for running Dagger pipelines in Python."
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "dagger_io-0.5.4-py3-none-any.whl", hash = "sha256:5fa156fb76f968cb6566b68715b1ff50de054140a0b96551e3852183b6f14b8c"},
-    {file = "dagger_io-0.5.4.tar.gz", hash = "sha256:05adbdf2881fd748d02173486b7873aa36fe783526b816fc16d5e45a0ef87f95"},
+    {file = "dagger_io-0.6.0-py3-none-any.whl", hash = "sha256:d10abf5132983853fb50bf4f38cd771035a9ab975f78070362e4fb077925b170"},
+    {file = "dagger_io-0.6.0.tar.gz", hash = "sha256:44a310318bbc6947c3360e9592d6d9a32b4b174f4ffe9d240168a9db5d9cd24b"},
 ]
 
 [package.dependencies]
@@ -1004,4 +1013,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "881d6f55324cbcd22056ec2b352fca47d96e7bebe1e78cf06397d5d45f25d1a8"
+content-hash = "185b7742b8e014a6100800d90939bb864e48edd147d7a79d815cdc310bd283b0"
