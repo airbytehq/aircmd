@@ -6,7 +6,6 @@ import click
 import structlog
 
 from .core.plugins import plugin_group
-from .logging import setup_default_logging
 from .models import GlobalContext
 
 # Create a global context
@@ -23,7 +22,7 @@ logger = structlog.get_logger()
 # Ideally we should have people able to configure this on 
 # a per-plugin or per-method or per-command basis
 # Running this method makes get_logger() return a structlog logger
-setup_default_logging(gctx.log_level, gctx.debug)
+#setup_default_logging()
 
 
 def display_welcome_message() -> None:

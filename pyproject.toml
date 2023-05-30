@@ -11,6 +11,7 @@ dagger-io = "^0.5.2"
 structlog = "^23.1.0"
 rich = "^13.3.5"
 pydantic = {version = "^2.0a4", allow-prereleases = true}
+pydantic-settings = { git = "https://github.com/pydantic/pydantic-settings.git", branch = "main" }
 requests = "^2.26.0"
 
 [tool.mypy]

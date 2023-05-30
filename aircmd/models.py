@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import os
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
 from inspect import signature
@@ -12,8 +10,9 @@ import click
 import dagger
 from click import ClickException, Command, Group
 from dagger import Connection
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic.main import ModelMetaclass
+from pydantic_settings import BaseSettings
 
 from .plugin_manager import PluginManager
 
@@ -25,6 +24,47 @@ class Singleton(ModelMetaclass):
         if cls not in cls._instances:
             cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
+
+    
+class GlobalSettings(BaseSettings):
+    GITHUB_TOKEN: Optional[str] = Field(None, env="GITHUB_TOKEN")
+    CI: bool = Field(False, env="CI")
+    LOG_LEVEL: str = Field("WARNING", env="LOG_LEVEL")
+
+class PipelineContext(BaseModel, metaclass=Singleton):
+    dagger_config: dagger.Config
+    dagger_connection: Connection
+
+    def __init__(self, config: Optional[dagger.Config] = None, **data: Any):
+        if config is None:
+            config = dagger.Config()
+        super().__init__(config=config, **data)
+
+    class Config:
+        arbitrary_types_allowed = True
+
+class GlobalContext(BaseModel, metaclass=Singleton):
+    plugin_manager: PluginManager
+    pipeline_context: Optional[PipelineContext] = None
+    class Config:
+        arbitrary_types_allowed = True
+
+    # This syntax is needed over the dataclass syntax for setting the default value
+    # because make_pass_decorator relies on the __init__ method
+    # to supply default values for the context object
+    # Otherwise, dataclass syntax is preferred
+    def __init__(self, plugin_manager: Optional[PluginManager] = None, **data: Any):
+                 #log_level: Optional[str] = None, debug = None, **data: Any):
+        if plugin_manager is None:
+            plugin_manager = PluginManager()
+        #if log_level is None:
+            #log_level = "WARNING"
+        #if debug is None:
+            #debug = False
+        super().__init__(plugin_manager=plugin_manager, **data)
+
+
+
 
 class ParameterType(str, Enum):
     STRING = "string"
@@ -72,7 +112,6 @@ class ClickGroupMetadata(BaseModel):
 class ClickGroup(ClickGroupMetadata):
     commands: Dict[str, ClickCommand] = {}
     subgroups: Dict[str, Type[ClickGroup]] = {}  # Added this line
-
 
     def command(self, command_metadata: ClickCommandMetadata):
         # Instantiate without arguments 
@@ -159,45 +198,6 @@ def make_pass_decorator(object_type, ensure=False):
         else:
             raise RuntimeError(f"Function {f.__name__} does not accept an argument of type {object_type}.")
     return decorator
-
-
-@dataclass(frozen=True)
-class GlobalContext(BaseModel, metaclass=Singleton):
-    plugin_manager: PluginManager
-    log_level: str # TODO: We should move this into a mutable LogContext
-    debug: bool # if we want to allow configuration on a per-command basis
-    local: bool = ("CI" not in os.environ)
-    class Config:
-        arbitrary_types_allowed = True
-
-    # This syntax is needed over the dataclass syntax for setting the default value
-    # because make_pass_decorator relies on the __init__ method
-    # to supply default values for the context object
-    # Otherwise, dataclass syntax is preferred
-    def __init__(self, plugin_manager: Optional[PluginManager] = None, 
-                 log_level: Optional[str] = None, debug = None, **data: Any):
-        if plugin_manager is None:
-            plugin_manager = PluginManager()
-        if log_level is None:
-            log_level = "WARNING"
-        if debug is None:
-            debug = False
-        super().__init__(plugin_manager=plugin_manager, log_level=log_level, 
-                         debug=debug, **data)
-    #repo: str # TBD: Make this a repo object
-
-@dataclass(frozen=True)
-class PipelineContext(BaseModel, metaclass=Singleton):
-    dagger_config: dagger.Config
-    dagger_connection: Connection
-
-    def __init__(self, config: Optional[dagger.Config] = None, **data: Any):
-        if config is None:
-            config = dagger.Config()
-        super().__init__(config=config, **data)
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 class Plugin(BaseModel, ABC):
