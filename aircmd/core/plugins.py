@@ -3,15 +3,14 @@ import sys
 from typing import List, Optional
 
 import requests
-import structlog
-from click import make_pass_decorator
+from asyncclick import make_pass_decorator
 
 from ..models import (ClickArgument, ClickCommandMetadata, ClickGroup,
                       ClickOption, GlobalContext)
 
 plugin_group = ClickGroup(group_name="plugin")
 
-logger = structlog.get_logger()
+#logger = structlog.get_logger()
 
 pass_global_context = make_pass_decorator(GlobalContext, ensure=True)
 
@@ -29,7 +28,7 @@ def list(ctx: GlobalContext, query: Optional[str] = None) -> None:
     installed_plugins = ctx.plugin_manager.plugins.keys()
     ("Installed plugins:")
     for plugin in installed_plugins:
-        logger.info(f"  {plugin}")
+        print(f"  {plugin}")
 
     response = requests.get(plugin_index_url)
 
@@ -38,12 +37,12 @@ def list(ctx: GlobalContext, query: Optional[str] = None) -> None:
         if query:
             plugin_index = [p for p in plugin_index if query.lower() in p["name"].lower()]
 
-        logger.info("\nAvailable plugins:")
+        print("\nAvailable plugins:")
         for plugin in plugin_index:
             status = "installed" if plugin["name"] in installed_plugins else "available"
-            logger.info(f"  {plugin['name']} ({plugin['version']}): {plugin['description']} [{status}]")
+            print(f"  {plugin['name']} ({plugin['version']}): {plugin['description']} [{status}]")
     else:
-        logger.warning("Failed to fetch the plugin index, showing only installed plugins.")
+        printwarning("Failed to fetch the plugin index, showing only installed plugins.")
 
 
 class InstallCommand(ClickCommandMetadata):
@@ -63,20 +62,20 @@ def install(ctx: GlobalContext, name: str, local: Optional[str]) -> None:
             plugin_index = response.json()
             matching_plugins = [p for p in plugin_index if p["name"] == name]
             if not matching_plugins:
-                logger.error(f"Plugin {name} not found in the plugin index.")
+                print(f"Plugin {name} not found in the plugin index.")
                 return
             package_name = matching_plugins[0]["package_name"]
             repo_url = matching_plugins[0]["repo_url"]
         else:
-            logger.warning("Failed to fetch the plugin index.")
+            printwarning("Failed to fetch the plugin index.")
             return
     else:
         package_name = local
 
-    logger.info(f"Installing plugin: {name}")
+    print(f"Installing plugin: {name}")
     try:
         if local:
-            logger.info(f"Installing from local directory: {local}")
+            print(f"Installing from local directory: {local}")
             subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", package_name])
         else:
             if "github.com" in repo_url:
@@ -90,11 +89,11 @@ def install(ctx: GlobalContext, name: str, local: Optional[str]) -> None:
             else:
                 subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
 
-        logger.info(f"Plugin {name} installed successfully.")
+        print(f"Plugin {name} installed successfully.")
         ctx.plugin_manager.add_installed_plugin(name)
         ctx.plugin_manager.refresh()
     except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to install plugin {name}: {e}")
+        print(f"Failed to install plugin {name}: {e}")
 
 
 class UninstallCommand(ClickCommandMetadata):
@@ -106,15 +105,19 @@ class UninstallCommand(ClickCommandMetadata):
 def uninstall(context: GlobalContext, name: str) -> None:
     """Uninstall a plugin"""
     try:
-        logger.debug(f"Attempting to uninstall plugin: {name}")
+        print(f"Attempting to uninstall plugin: {name}")
         subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "-y", name])
         if name in context.plugin_manager.get_installed_plugins():
-            logger.info(f"Plugin {name} uninstalled successfully.")
+            print(f"Plugin {name} uninstalled successfully.")
             context.plugin_manager.remove_installed_plugin(name)
             context.plugin_manager.refresh()
         else:
-            logger.warning(f"Plugin {name} was not installed.")
+            printwarning(f"Plugin {name} was not installed.")
     except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to uninstall plugin {name}: {e}")
+        print(f"Failed to uninstall plugin {name}: {e}")
+        context.plugin_manager.refresh()
+
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to uninstall plugin {name}: {e}")
         context.plugin_manager.refresh()
 

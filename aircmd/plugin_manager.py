@@ -6,13 +6,12 @@ import os
 import pathlib
 from typing import TYPE_CHECKING, Any, Dict, List
 
-import structlog
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from .models import ClickGroup
 
-logger = structlog.get_logger()
+#logger = structlog.get_logger()
 
 class PluginManager(BaseModel):
     PLUGIN_DIR: pathlib.Path = pathlib.Path(os.path.expanduser("~/.aircmd"))
@@ -35,7 +34,7 @@ class PluginManager(BaseModel):
             try:
                 plugin = entry_point.load()  # store the loaded plugin in a variable
             except Exception as e:
-                logger.error(f"Failed to load plugin {plugin_name}: {e}")
+                print(f"Failed to load plugin {plugin_name}: {e}")
                 continue
             
             self.plugins[plugin_name] = plugin  # store the loaded plugin instead of its name
@@ -70,17 +69,17 @@ class PluginManager(BaseModel):
             with plugin_file.open("w") as f:
                 json.dump(installed_plugins, f)
         else:
-            logger.warning(f"Plugin {plugin_name} not found in installed plugins list.")
+            printwarning(f"Plugin {plugin_name} not found in installed plugins list.")
 
     def get_command_groups(self) -> List[ClickGroup]:  # change Group to ClickGroup
         command_groups = []
 
         for plugin_name, plugin in self.plugins.items():
             try:
-                logger.debug(f"Plugin loaded: {plugin_name}")
+                print(f"Plugin loaded: {plugin_name}")
                 for group in plugin.groups.values():
                     command_groups.append(group)  
             except Exception as e:
-                logger.error(f"Failed to load plugin {plugin_name} with error: {e}")
+                print(f"Failed to load plugin {plugin_name} with error: {e}")
     
         return command_groups

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import sys
 from abc import ABC, abstractmethod
 from enum import Enum
 from functools import wraps
 from inspect import signature
 from typing import Any, Dict, List, Optional, Type
 
-import click
+import asyncclick as click
 import dagger
-from click import ClickException, Command, Group
+from asyncclick import ClickException, Command, Group
 from dagger import Connection
 from pydantic import BaseModel, Field
 from pydantic.main import ModelMetaclass
@@ -35,10 +36,13 @@ class PipelineContext(BaseModel, metaclass=Singleton):
     dagger_config: dagger.Config
     dagger_connection: Connection
 
-    def __init__(self, config: Optional[dagger.Config] = None, **data: Any):
+    def __init__(self, config: Optional[dagger.Config] = None,  connection: Optional[Connection] = None, **data: Any):
         if config is None:
-            config = dagger.Config()
-        super().__init__(config=config, **data)
+            config = dagger.Config(log_output=sys.stdout)
+        if connection is None:
+            # Replace with your logic to create a Connection instance
+            connection = Connection(config = config)
+        super().__init__(dagger_config=config, dagger_connection=connection, **data)
 
     class Config:
         arbitrary_types_allowed = True
@@ -54,13 +58,8 @@ class GlobalContext(BaseModel, metaclass=Singleton):
     # to supply default values for the context object
     # Otherwise, dataclass syntax is preferred
     def __init__(self, plugin_manager: Optional[PluginManager] = None, **data: Any):
-                 #log_level: Optional[str] = None, debug = None, **data: Any):
         if plugin_manager is None:
             plugin_manager = PluginManager()
-        #if log_level is None:
-            #log_level = "WARNING"
-        #if debug is None:
-            #debug = False
         super().__init__(plugin_manager=plugin_manager, **data)
 
 

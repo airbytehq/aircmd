@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import sys
 
-import click
-import structlog
+import asyncclick as click
 
 from .core.plugins import plugin_group
 from .models import GlobalContext
+
+#import structlog
+
 
 # Create a global context
 gctx = GlobalContext()
@@ -14,7 +16,7 @@ gctx = GlobalContext()
 # Create a Click context
 global_context = click.make_pass_decorator(GlobalContext, ensure=True)
 
-logger = structlog.get_logger()
+#logger = structlog.get_logger()
 # create a decorator with click to pass the global context to commands
 
 # Set up logging

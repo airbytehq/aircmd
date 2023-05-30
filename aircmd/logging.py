@@ -1,8 +1,6 @@
-import logging
-
-import structlog
 
 
+'''
 # Add this function to set up logging with default settings
 def setup_default_logging(log_level: str, debug_mode: bool) -> None:
     common_processors = [
@@ -31,3 +29,4 @@ def setup_default_logging(log_level: str, debug_mode: bool) -> None:
 
     logging.basicConfig(level=log_level)
     logging.getLogger("pydantic").setLevel(log_level)
+'''
