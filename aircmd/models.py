@@ -63,8 +63,6 @@ class GlobalContext(BaseModel, metaclass=Singleton):
         super().__init__(plugin_manager=plugin_manager, **data)
 
 
-
-
 class ParameterType(str, Enum):
     STRING = "string"
     INT = "int"
@@ -90,13 +88,15 @@ class ClickFlag(ClickParam):
 
 class ClickCommandMetadata(BaseModel):
     command_name: str
-    command_help: Optional[str] = None
+    command_help: str
 
 class ClickCommand(ClickCommandMetadata):
     arguments: List[ClickArgument] = []
     options: List[ClickOption] = []
     flags: List[ClickFlag] = []
-    command_func: Any = None  # The function that gets called when the command is invoked
+    command_func: Any = None  
+    # The function that gets called when the command is invoked
+    # Note that typing this created issues so we leave it Any for now
 
     @property
     def click_command(self):
