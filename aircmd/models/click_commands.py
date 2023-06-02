@@ -5,6 +5,8 @@ from pydantic import BaseModel, ValidationError, field_validator
 
 from .click_params import ClickArgument, ClickFlag, ClickOption
 
+__all__ = ["ClickArgument", "ClickCommandMetadata", "ClickCommand", "ClickGroupMetadata", "ClickGroup"]
+
 if TYPE_CHECKING:
     from .utils import map_pyd_cmd_to_click_command
 
