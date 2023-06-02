@@ -70,7 +70,7 @@ def map_pyd_grp_to_click_group(group_model: ClickGroup) -> Group:
 
 
 
-def make_pass_decorator(object_type, ensure: bool=False) -> Callable[..., Any]:
+def make_pass_decorator(object_type: Any, ensure: bool=False) -> Callable[..., Any]:
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         sig = signature(f)
         params = sig.parameters
@@ -105,6 +105,7 @@ def make_pass_decorator(object_type, ensure: bool=False) -> Callable[..., Any]:
         else:
             raise RuntimeError(f"Function {f.__name__} does not accept an argument of type {object_type}.")
     return decorator
+
 
 
 

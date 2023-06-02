@@ -25,14 +25,15 @@ class PluginManager(BaseModel):
     def discover(self) -> None:
         self.plugins.clear()
         installed_plugins = self.get_installed_plugins()
-        entry_points = metadata.entry_points().get("aircmd.plugins", [])
+        entry_points: metadata.EntryPoints | List[Any] = metadata.entry_points().get("aircmd.plugins", [])
         for entry_point in entry_points:
             plugin_name = entry_point.name
             if plugin_name not in installed_plugins:
                 continue
 
             try:
-                plugin = entry_point.load()  # store the loaded plugin in a variable
+                if isinstance(entry_point, metadata.EntryPoint):
+                    plugin = entry_point.load()  # store the loaded plugin in a variable
             except Exception as e:
                 print(f"Failed to load plugin {plugin_name}: {e}")
                 continue

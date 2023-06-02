@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from asyncclick import ClickException, Command, Group
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, field_validator
 
 from .click_params import ClickArgument, ClickFlag, ClickOption
 
@@ -15,10 +15,23 @@ TYPE_MAPPING: Dict[str, Any] = {
     "string": str,
 }
 
-
 class ClickCommandMetadata(BaseModel):
     command_name: str
     command_help: str
+
+    @field_validator('command_name')
+    def validate_command_name(cls, v: str) -> str:
+        if not v or not v.islower() or not v.isalnum() or len(v) > 20:
+            raise ValueError("Command name must be all lowercase, contain no special characters, and not exceed 20 characters in length.")
+        return v
+
+    @field_validator('command_help')
+    def validate_command_help(cls, v: str) -> str:
+        if not v or len(v) > 100:
+            raise ValueError("Command help cannot be empty and must not exceed 100 characters in length.")
+        if not v[0].isupper() or v[-1] == '.':
+            raise ValueError("Command help must be a sentence that begins with a capital letter and does not end in a period.")
+        return v 
 
 class ClickCommand(ClickCommandMetadata):
     arguments: List[ClickArgument] = []
@@ -38,9 +51,38 @@ class ClickGroupMetadata(BaseModel):
     group_name: Optional[str] = None
     group_help: str
 
+    @field_validator('group_name')
+    def validate_group_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v == "":
+            raise ValueError("Group name cannot be empty string when it's not None.")  
+        if v and not v.islower():
+            raise ValueError("Group name must be all lowercase")
+        if v and not v.isalnum():
+            raise ValueError("Group name must contain no special characters")
+        if v and len(v) > 20:
+            raise ValueError("Group name must not exceed 20 characters in length")
+        return v
+
+    @field_validator('group_help')
+    def validate_group_help(cls, v: str) -> str:
+        if len(v) > 100:
+            raise ValueError("Group help must not exceed 100 characters in length.")
+        if not v or v == "":
+            raise ValueError("Group help cannot be empty.")
+        if not v[0].isupper() or v[-1] == '.':
+            raise ValueError("Group help must be a sentence that begins with a capital letter and does not end in a period.")
+        return v
+
 class ClickGroup(ClickGroupMetadata):
     commands: Dict[str, ClickCommand] = {}
-    subgroups: Dict[str, 'ClickGroup'] = {} 
+    subgroups: Dict[str, 'ClickGroup'] = {}
+
+    def __init__(self, **data: Any) -> None:
+        super().__init__(**data)
+        self.group_name = data.get("group_name") or None
+        self.group_help = data.get("group_help", "")
+        self.commands = data.get("commands", {})
+        self.subgroups = data.get("subgroups", {})
 
     def command(self, command_metadata: ClickCommandMetadata) -> Callable[..., Any]:
         # Instantiate without arguments 

@@ -1,21 +1,19 @@
 import sys
-from typing import Any, Optional
+from typing import Any, Optional, Type
 
 import dagger
 from pydantic import BaseModel, Field
-from pydantic.main import ModelMetaclass
 from pydantic_settings import BaseSettings
 
 from ..plugin_manager import PluginManager
 
 
-class Singleton(ModelMetaclass):
-    _instances: dict['Singleton', Any] = {}
+class Singleton:
+    _instances: dict[Type['Singleton'], Any] = {}
 
-    def __call__(cls: 'Singleton',
-                  *args: Any, **kwargs: Any) -> Any:
+    def __new__(cls: Type['Singleton'], *args: Any, **kwargs: Any) -> Any:
         if cls not in cls._instances:
-            cls._instances[cls] = super().__call__(*args, **kwargs)
+            cls._instances[cls] = super().__new__(cls)
         return cls._instances[cls]
 
     
@@ -24,7 +22,7 @@ class GlobalSettings(BaseSettings):
     CI: bool = Field(False, env="CI")
     LOG_LEVEL: str = Field("WARNING", env="LOG_LEVEL")
 
-class PipelineContext(BaseModel, metaclass=Singleton):
+class PipelineContext(BaseModel, Singleton):
     dagger_config: dagger.Config
     dagger_connection: dagger.Connection
 
@@ -41,7 +39,7 @@ class PipelineContext(BaseModel, metaclass=Singleton):
     class Config:
         arbitrary_types_allowed = True
 
-class GlobalContext(BaseModel, metaclass=Singleton):
+class GlobalContext(BaseModel,Singleton):
     plugin_manager: PluginManager
     pipeline_context: Optional[PipelineContext] = None
     class Config:

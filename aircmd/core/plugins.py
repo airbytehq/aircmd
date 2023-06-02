@@ -29,12 +29,12 @@ class ListCommand(ClickCommandMetadata):
 def list(ctx: GlobalContext, query: Optional[str] = None) -> None:
     """List installed plugins and search for available plugins"""
     plugin_index_url = "https://github.com/airbytehq/aircmd/plugin_index.json"
-    installed_plugins = ctx.plugin_manager.plugins.keys()
+    installed_plugins = ctx.plugin_manager.plugins.values()
     ("Installed plugins:")
     for plugin in installed_plugins:
         print(f"  {plugin}")
 
-    response = requests.get(plugin_index_url)
+    response: requests.Response = requests.get(plugin_index_url)
 
     if response.status_code == 200:
         plugin_index = response.json()
@@ -43,7 +43,10 @@ def list(ctx: GlobalContext, query: Optional[str] = None) -> None:
 
         print("\nAvailable plugins:")
         for plugin in plugin_index:
-            status = "installed" if plugin["name"] in installed_plugins else "available"
+            if plugin['name'] in [p['name'] for p in installed_plugins]:
+                status = "installed" 
+            else:
+                status = "available"
             print(f"  {plugin['name']} ({plugin['version']}): {plugin['description']} [{status}]")
     else:
         print("Failed to fetch the plugin index, showing only installed plugins.")
@@ -61,7 +64,7 @@ def install(ctx: GlobalContext, name: str, local: Optional[str]) -> None:
     """Install a plugin"""
     if not local:
         plugin_index_url = "https://raw.githubusercontent.com/airbytehq/aircmd/main/plugin_index.json"
-        response = requests.get(plugin_index_url)
+        response: requests.Response = requests.get(plugin_index_url)
         if response.status_code == 200:
             plugin_index = response.json()
             matching_plugins = [p for p in plugin_index if p["name"] == name]
@@ -102,7 +105,7 @@ def install(ctx: GlobalContext, name: str, local: Optional[str]) -> None:
 
 class UninstallCommand(ClickCommandMetadata):
    command_name: str = "uninstall"
-   command_help: str = "Uninstall a plugin."
+   command_help: str = "Uninstall a plugin"
    arguments: List[ClickArgument] = [ClickArgument(name='name', required=True)]
 
 @plugin_group.command(UninstallCommand())
