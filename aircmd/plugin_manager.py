@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Dict, List
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    from .models import ClickGroup
+    from .models.click_commands import ClickGroup
 
 #logger = structlog.get_logger()
 
@@ -69,7 +69,7 @@ class PluginManager(BaseModel):
             with plugin_file.open("w") as f:
                 json.dump(installed_plugins, f)
         else:
-            printwarning(f"Plugin {plugin_name} not found in installed plugins list.")
+            print(f"Plugin {plugin_name} not found in installed plugins list.")
 
     def get_command_groups(self) -> List[ClickGroup]:  # change Group to ClickGroup
         command_groups = []

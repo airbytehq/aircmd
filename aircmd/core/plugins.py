@@ -1,18 +1,22 @@
+import os
 import subprocess
 import sys
+import urllib
 from typing import List, Optional
 
 import requests
-from asyncclick import make_pass_decorator
 
-from ..models import (ClickArgument, ClickCommandMetadata, ClickGroup,
-                      ClickOption, GlobalContext)
+from ..models.base import GlobalContext, GlobalSettings
+from ..models.click_commands import ClickCommandMetadata, ClickGroup
+from ..models.click_params import ClickArgument, ClickOption
+from ..models.utils import make_pass_decorator
 
-plugin_group = ClickGroup(group_name="plugin")
+plugin_group = ClickGroup(group_name="plugin", group_help="Commands for managing plugins")
 
 #logger = structlog.get_logger()
 
 pass_global_context = make_pass_decorator(GlobalContext, ensure=True)
+pass_global_settings = make_pass_decorator(GlobalSettings, ensure=True)
 
 
 class ListCommand(ClickCommandMetadata):
@@ -55,7 +59,7 @@ class InstallCommand(ClickCommandMetadata):
 @pass_global_context
 def install(ctx: GlobalContext, name: str, local: Optional[str]) -> None:
     """Install a plugin"""
-    if not ctx.local:
+    if not local:
         plugin_index_url = "https://raw.githubusercontent.com/airbytehq/aircmd/main/plugin_index.json"
         response = requests.get(plugin_index_url)
         if response.status_code == 200:
@@ -114,10 +118,6 @@ def uninstall(context: GlobalContext, name: str) -> None:
             context.plugin_manager.refresh()
         else:
             print(f"Plugin {name} was not installed.")
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to uninstall plugin {name}: {e}")
-        context.plugin_manager.refresh()
-
     except subprocess.CalledProcessError as e:
         print(f"Failed to uninstall plugin {name}: {e}")
         context.plugin_manager.refresh()

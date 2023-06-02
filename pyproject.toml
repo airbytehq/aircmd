@@ -28,6 +28,7 @@ mypy = "^1.2.0"
 #[tool.poetry.dev.dependencies]
 # Example plugin goes here. We run tests against it.
 # This also doubles as the official plugin registry
+types-requests = "^2.31.0.1"
 [tool.poetry.group.test.dependencies]
 pytest = "^7.3.1"
 
