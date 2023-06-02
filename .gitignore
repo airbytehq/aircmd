@@ -174,3 +174,5 @@ cython_debug/
 
 build/
 
+.aider.chat.history.md
+.aider.input.history
