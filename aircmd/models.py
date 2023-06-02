@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import sys
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -16,6 +14,13 @@ from pydantic.main import ModelMetaclass
 from pydantic_settings import BaseSettings
 
 from .plugin_manager import PluginManager
+
+TYPE_MAPPING: Dict[str, Any] = {
+    "int": int,
+    "float": float,
+    "bool": bool,
+    "string": str,
+}
 
 
 class Singleton(ModelMetaclass):
@@ -249,13 +254,6 @@ class OperatorPlugin(Plugin, ABC):
     # about how an operator plugin should be structured
     pass
     
-class Pipeline(BaseModel):
-    # todo: stub this out after chatting with Augustin and Ben
-    pipeline_context: PipelineContext
-    global_context: GlobalContext
-
-    pipelines: list[Pipeline] = []
-    pass
 
 
 

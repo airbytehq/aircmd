@@ -42,7 +42,7 @@ def list(ctx: GlobalContext, query: Optional[str] = None) -> None:
             status = "installed" if plugin["name"] in installed_plugins else "available"
             print(f"  {plugin['name']} ({plugin['version']}): {plugin['description']} [{status}]")
     else:
-        printwarning("Failed to fetch the plugin index, showing only installed plugins.")
+        print("Failed to fetch the plugin index, showing only installed plugins.")
 
 
 class InstallCommand(ClickCommandMetadata):
@@ -67,7 +67,7 @@ def install(ctx: GlobalContext, name: str, local: Optional[str]) -> None:
             package_name = matching_plugins[0]["package_name"]
             repo_url = matching_plugins[0]["repo_url"]
         else:
-            printwarning("Failed to fetch the plugin index.")
+            print("Failed to fetch the plugin index.")
             return
     else:
         package_name = local
@@ -98,6 +98,7 @@ def install(ctx: GlobalContext, name: str, local: Optional[str]) -> None:
 
 class UninstallCommand(ClickCommandMetadata):
    command_name: str = "uninstall"
+   command_help: str = "Uninstall a plugin."
    arguments: List[ClickArgument] = [ClickArgument(name='name', required=True)]
 
 @plugin_group.command(UninstallCommand())
@@ -112,7 +113,7 @@ def uninstall(context: GlobalContext, name: str) -> None:
             context.plugin_manager.remove_installed_plugin(name)
             context.plugin_manager.refresh()
         else:
-            printwarning(f"Plugin {name} was not installed.")
+            print(f"Plugin {name} was not installed.")
     except subprocess.CalledProcessError as e:
         print(f"Failed to uninstall plugin {name}: {e}")
         context.plugin_manager.refresh()
