@@ -28,11 +28,11 @@ class ListCommand(ClickCommandMetadata):
 @pass_global_context
 def list(ctx: GlobalContext, query: Optional[str] = None) -> None:
     """List installed plugins and search for available plugins"""
-    plugin_index_url = "https://github.com/airbytehq/aircmd/plugin_index.json"
+    plugin_index_url = "https://raw.githubusercontent.com/airbytehq/aircmd/main/plugin_index.json"
     installed_plugins = ctx.plugin_manager.plugins.values()
-    ("Installed plugins:")
+    print("Installed plugins:")
     for plugin in installed_plugins:
-        print(f"  {plugin}")
+        print(f"{plugin.name}")
 
     response: requests.Response = requests.get(plugin_index_url)
 
@@ -43,11 +43,12 @@ def list(ctx: GlobalContext, query: Optional[str] = None) -> None:
 
         print("\nAvailable plugins:")
         for plugin in plugin_index:
-            if plugin['name'] in [p['name'] for p in installed_plugins]:
-                status = "installed" 
+            if plugin in [p.name for p in installed_plugins]:
+                status = "Installed" 
             else:
-                status = "available"
-            print(f"  {plugin['name']} ({plugin['version']}): {plugin['description']} [{status}]")
+                status = "Available"
+            print(plugin + f" ({status})")
+                
     else:
         print("Failed to fetch the plugin index, showing only installed plugins.")
 
