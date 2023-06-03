@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import sys
 
-import asyncclick as click
+from dotenv import load_dotenv
 
+from .core.artifact import core_group
 from .core.plugins import plugin_group
 from .models.base import GlobalContext
+from .models.click_commands import ClickGroup
 from .models.utils import make_pass_decorator
+
+load_dotenv()
+
 
 # Create a global context
 gctx = GlobalContext()
@@ -35,39 +40,30 @@ def display_welcome_message() -> None:
             ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═════╝    ╚═╝      ╚═╝   ╚══════╝ 
         ''')
 
-# Here we leverage click directly to create the top level entrypoint
-# and leverage click's argument parsing but otherwise we will use
-# our custom pydantic models to define the commands and arguments
-@click.group()
-def cli() -> None:
-    pass
+cli = ClickGroup(group_name=None, group_help="Aircmd: A CLI for Airbyte")
 
-# Add core commands that live in `aircmd` to the top level entrypoint
-cli.add_command(plugin_group.click_group, name="plugin")
+# Add core commands that live in `aircmd` itself (not plugins) to the top level entrypoint
+
+cli.add_group(plugin_group) # commands to manage plugins
+cli.add_group(core_group) # commands to manage building, testing, and publishing aircmd
 
 def main() -> None:
     # only show the banner when running `aircmd` with no arguments
     if len(sys.argv) == 1:
         display_welcome_message()
 
-        # Load plugin manager from the global context
+    # Load plugin manager from the global context
     plugin_manager = gctx.plugin_manager
 
     # Get the command groups from the plugins
     plugin_command_groups = plugin_manager.get_command_groups()
 
-
     # Add each plugin command group to the top level cli
     for plugin_command_group in plugin_command_groups:
-        cli.add_command(plugin_command_group.click_group)
+        cli.add_group(plugin_command_group)
 
-    cli()
-    #try:
-        #await cli()
-    #except Exception as e:
-        #if str(e) != "0":
-            #raise e
-
+    # Run the cli via its click entrypoint to parse arguments and delegate to the correct commands
+    cli.click_group()
 
 
 if __name__ == "__main__":

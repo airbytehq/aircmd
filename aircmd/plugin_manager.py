@@ -74,7 +74,6 @@ class PluginManager(BaseModel):
 
     def get_command_groups(self) -> List[ClickGroup]:  # change Group to ClickGroup
         command_groups = []
-
         for plugin_name, plugin in self.plugins.items():
             try:
                 print(f"Plugin loaded: {plugin_name}")

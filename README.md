@@ -6,6 +6,22 @@ Aircmd makes use of Pydantic for data validation and Click for building the comm
 
 ## Installation
 
+### Quick start
+
+```bash
+$ pip install aircmd
+```
+
+```bash
+$ aircmd
+```
+
+### Dependencies
+
+`aircmd` requires SOPS for secrets management and Docker for running pipelines
+
+### Local Development
+
 To install aircmd and work with it locally, first make sure you have Python 3.11 and Poetry installed. Then, clone the aircmd repository:
 
 ```bash
@@ -33,6 +49,18 @@ aircmd --help
 ```
 
 If you want to be able to run the aircmd command from anywhere without using poetry run, you'll need to modify your system's PATH environment variable to include the venv/bin directory of your project. For development you should avoid this, however, as it will conflict with the global production install of aircmd 
+
+## Configuring `aircmd` with secrets
+
+Configuration is done in the following order:
+
+
+ 1 Load secrets using SOPS and store them in environment variables.                                                                                                   
+ 2 Load environment variables from .env file using python-dotenv                                                                                                     
+ 3 Use the GlobalSettings class that inherits from BaseSettings to automatically read the configuration from environment variables. This is an immutable singleton that is created as `aircmd` starts up
+
+
+To solve the chicken and egg problem (you need to have a secret to decrypt a secret), `aircmd` will use the existing gcloud configuration stored on the machine to attempt to decrypt secrets, or optionally can take in a service account JSON as input to perform this decryption instead
 
 ## Plugin Discovery
 

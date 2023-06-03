@@ -10,13 +10,17 @@ python = "^3.11"
 dagger-io = "^0.6.0"
 structlog = "^23.1.0"
 rich = "^13.3.5"
-pydantic = {version = "^2.0a4", allow-prereleases = true}
+pydantic = {version = "^2.0b2", allow-prereleases = true}
 pydantic-settings = { git = "https://github.com/pydantic/pydantic-settings.git", branch = "main" }
 requests = "^2.26.0"
 asyncclick = "^8.1.3.4"
 
 [tool.mypy]
 strict = "true"
+
+[tool.ruff]
+# ignore line length violations for now
+ignore = ["E501"]
 
 [tool.poetry.scripts]
 aircmd = "aircmd.main:main"

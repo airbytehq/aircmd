@@ -593,13 +593,13 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "pydantic"
-version = "2.0b1"
+version = "2.0b2"
 description = "Data validation using Python type hints"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pydantic-2.0b1-py3-none-any.whl", hash = "sha256:669f0d5e777462bd000682dd3ad4cee249e3c14bab9d0648aa179a766ac0ccd4"},
-    {file = "pydantic-2.0b1.tar.gz", hash = "sha256:cba25f8a6090f8bdbc7bea424ad95a53687e10be2f23883c3460a32afd7223d6"},
+    {file = "pydantic-2.0b2-py3-none-any.whl", hash = "sha256:a07edf22ceb91790a4954db62b82dfc0360034e2ab30c1a23d4a65024bc66eb9"},
+    {file = "pydantic-2.0b2.tar.gz", hash = "sha256:3491863cd9be6608f9cae6796a4fd151d38df1872242c1d5e992dcceb27697fe"},
 ]
 
 [package.dependencies]
@@ -1038,4 +1038,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "94df4de2f1db94877e264a236455e728d8120c460122935a0f96d39406669653"
+content-hash = "0a8da396eb9bcef32bfbef02af72cd4475bcd8869a80bd6142ea9f71f538da26"

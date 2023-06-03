@@ -44,6 +44,17 @@ def add_parameter(params: List[Parameter], parameter_model: ClickParam) -> None:
         raise TypeError(f"Unsupported parameter type: {type(parameter_model)}")
 
 
+def map_pyd_opt_to_click_option(option_model: ClickOption) -> Option:
+    opts = [option_model.name]
+    if option_model.shortcut is not None:
+        opts.append(option_model.shortcut)
+    click_option = Option(opts,
+                          type=TYPE_MAPPING[option_model.type], 
+                          default=option_model.default,
+                          help=option_model.help, 
+                          required=option_model.required)
+    return click_option
+
 def map_pyd_cmd_to_click_command(command_model: ClickCommand) -> Command:
 
     """Create a Click command for a command model and add it to a group."""

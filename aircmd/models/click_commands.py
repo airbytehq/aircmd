@@ -39,7 +39,7 @@ class ClickCommand(ClickCommandMetadata):
     arguments: List[ClickArgument] = []
     options: List[ClickOption] = []
     flags: List[ClickFlag] = []
-    command_func: Any = None  
+    command_func: Any = None
     # The function that gets called when the command is invoked
     # Note that typing this created issues so we leave it Any for now
 
@@ -55,8 +55,10 @@ class ClickGroupMetadata(BaseModel):
 
     @field_validator('group_name')
     def validate_group_name(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and v == "":
-            raise ValueError("Group name cannot be empty string when it's not None.")  
+        if v is None:
+            return v
+        if v == "":
+            raise ValueError("Group name cannot be empty string when it's not None.")
         if v and not v.islower():
             raise ValueError("Group name must be all lowercase")
         if v and not v.isalnum():
@@ -78,6 +80,7 @@ class ClickGroupMetadata(BaseModel):
 class ClickGroup(ClickGroupMetadata):
     commands: Dict[str, ClickCommand] = {}
     subgroups: Dict[str, 'ClickGroup'] = {}
+    options: List[ClickOption] = []
 
     def __init__(self, **data: Any) -> None:
         super().__init__(**data)
@@ -99,15 +102,17 @@ class ClickGroup(ClickGroupMetadata):
             # We can now create a real command instance
             # and perform Pydantic validation on the arguments
             command_instance.command_func = func
-
-            def wrapper(*args: tuple[Any], **kwargs: dict[str, Any]) -> None:
+            def wrapper(*args: tuple[Any], **kwargs: dict[str, Any]) -> Any:
+                # Remove the global option from kwargs before validation
+                kwargs.pop("global_option", None)
                 try:
                     # Validate command instance against actual function arguments
                     command_instance = ClickCommand(**{**command_metadata.model_dump(), **kwargs})
                     self.commands[command_instance.command_name] = command_instance
                 except ValidationError as err:
-                    raise ClickException(str(err))  
-        
+                    raise ClickException(str(err))
+                return command_instance.command_func(*args, **kwargs)
+
             return wrapper
         return decorator
 
@@ -129,14 +134,20 @@ class ClickGroup(ClickGroupMetadata):
     
     @property
     def click_group(self) -> Group:
-        from .utils import map_pyd_cmd_to_click_command, map_pyd_grp_to_click_group
+        from .utils import (map_pyd_cmd_to_click_command,
+                            map_pyd_grp_to_click_group,
+                            map_pyd_opt_to_click_option)
         click_group = Group(name=self.group_name)
         for command_model in self.commands.values():
             click_command = map_pyd_cmd_to_click_command(command_model)
             click_group.add_command(click_command)
-        for subgroup in self.subgroups.values():  # Add this loop
+        for subgroup in self.subgroups.values():
             click_subgroup = map_pyd_grp_to_click_group(subgroup)
             click_group.add_command(click_subgroup)
+        for option in self.options:
+            click_option = map_pyd_opt_to_click_option(option)
+            click_group.params.append(click_option)
         return click_group
+
 
 
