@@ -21,7 +21,7 @@ def with_python_base(pipeline: Pipeline, python_image_name: str = "python:3.11-s
     """Build a Python container with a cache volume for pip cache.
     
     Args:
-        context (Pipelinepipeline): The current test pipeline, providing a dagger client and a repository directory.
+        context (Pipeline): The current test pipeline, providing a dagger client and a repository directory.
         python_image_name (str, optional): The python image to use to build the python base environment. Defaults to "python:3.11-slim".
 
     Raises:
@@ -49,7 +49,7 @@ def with_testing_dependencies(pipeline: Pipeline, settings: GlobalSettings, pypr
     """Build a testing environment by installing testing dependencies on top of a python base environment.
 
     Args:
-        context (Pipelinepipeline): The current test pipeline, providing a dagger client and a repository directory.
+        context (Pipeline): The current test pipeline, providing a dagger client and a repository directory.
 
     Returns:
         Container: The testing environment container.
@@ -71,7 +71,7 @@ def with_python_package(
     """Load a python package source code to a python environment container.
 
     Args:
-        context (Pipelinepipeline): The current test pipeline, providing the repository directory from which the python sources will be pulled.
+        context (Pipeline): The current test pipeline, providing the repository directory from which the python sources will be pulled.
         python_environment (Container): An existing python environment in which the package will be installed.
         package_source_code_path (str): The local path to the package source code.
         additional_dependency_groups (Optional[List]): extra_requires dependency of setup.py to install. Defaults to None.
@@ -102,7 +102,7 @@ async def with_installed_python_package(
     """Install a python package in a python environment container.
 
     Args:
-        context (Pipelinepipeline): The current test pipeline, providing the repository directory from which the python sources will be pulled.
+        context (Pipeline): The current test pipeline, providing the repository directory from which the python sources will be pulled.
         python_environment (Container): An existing python environment in which the package will be installed.
         package_source_code_path (str): The local path to the package source code.
         additional_dependency_groups (Optional[List]): extra_requires dependency of setup.py to install. Defaults to None.
@@ -179,7 +179,7 @@ def with_dockerd_service(
     """Create a container running dockerd, exposing its 2375 port, can be used as the docker host for docker-in-docker use cases.
 
     Args:
-        context (Pipelinepipeline): The current connector context.
+        context (Pipeline): The current connector context.
         shared_volume (Optional, optional): A tuple in the form of (mounted path, cache volume) that will be mounted to the dockerd container. Defaults to None.
         docker_service_name (Optional[str], optional): The name of the docker service, appended to volume name, useful context isolation. Defaults to None.
 
@@ -215,7 +215,7 @@ def with_bound_docker_host(
     """Bind a container to a docker host. It will use the dockerd service as a docker host.
 
     Args:
-        context (Pipelinepipeline): The current connector context.
+        context (Pipeline): The current connector context.
         container (Container): The container to bind to the docker host.
         shared_volume (Optional, optional): A tuple in the form of (mounted path, cache volume) that will be both mounted to the container and the dockerd container. Defaults to None.
         docker_service_name (Optional[str], optional): The name of the docker service, useful context isolation. Defaults to None.
@@ -240,7 +240,7 @@ def with_docker_cli(
     """Create a container with the docker CLI installed and bound to a persistent docker host.
 
     Args:
-        context (Pipelinepipeline): The current pipeline context.
+        context (Pipeline): The current pipeline context.
         shared_volume (Optional, optional): A tuple in the form of (mounted path, cache volume) that will be both mounted to the container and the dockerd container. Defaults to None.
         docker_service_name (Optional[str], optional): The name of the docker service, useful context isolation. Defaults to None.
 
@@ -261,7 +261,7 @@ def with_gradle(
     """Create a container with Gradle installed and bound to a persistent docker host.
 
     Args:
-        context (Pipelinepipeline): The current connector context.
+        context (Pipeline): The current connector context.
         sources_to_include (List[str], optional): List of additional source path to mount to the container. Defaults to None.
         bind_to_docker_host (bool): Whether to bind the gradle container to a docker host.
         docker_service_name (Optional[str], optional): The name of the docker service, useful context isolation. Defaults to "gradle".
@@ -328,7 +328,7 @@ async def load_image_to_docker_host(pipeline: Pipeline,
     """Load a docker image tar archive to the docker host.
 
     Args:
-        context (Pipelinepipeline): The current connector context.
+        context (Pipeline): The current connector context.
         tar_file (File): The file object holding the docker image tar archive.
         image_tag (str): The tag to create on the image if it has no tag.
         docker_service_name (str): Name of the docker service, useful for context isolation.
@@ -356,7 +356,7 @@ def with_poetry(pipeline: Pipeline) -> Container:
     """Install poetry in a python environment.
 
     Args:
-        context (Pipelinepipeline): The current test pipeline, providing the repository directory from which the ci_credentials sources will be pulled.
+        context (Pipeline): The current test pipeline, providing the repository directory from which the ci_credentials sources will be pulled.
     Returns:
         Container: A python environment with poetry installed.
     """
@@ -374,7 +374,7 @@ def with_poetry_module(pipeline: Pipeline, parent_dir: Directory, module_path: s
     """Sets up a Poetry module.
 
     Args:
-        context (Pipelinepipeline): The current test pipeline, providing the repository directory from which the sources will be pulled.
+        context (Pipeline): The current test pipeline, providing the repository directory from which the sources will be pulled.
     Returns:
         Container: A python environment with dependencies installed using poetry.
     """
