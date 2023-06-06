@@ -99,7 +99,7 @@ more flexibility and ease of use for the typical operations performed on CI pipe
 class Pipeline(BaseModel):
     name: str
     parent_pipeline: Optional['Pipeline']
-    dagger_pipeline: dagger.Client
+    dagger_client: dagger.Client
 
     class Config:
         arbitrary_types_allowed=True
@@ -112,12 +112,12 @@ class Pipeline(BaseModel):
                 dagger_client = ctx.dagger_client
         else:
             # This is a nested pipeline. Get the Dagger client from the parent pipeline.
-            dagger_client = parent_pipeline.dagger_pipeline
+            dagger_client = parent_pipeline.dagger_client
 
         # Create the pipeline using the appropriate Dagger client.
        
-        dagger_pipeline = dagger_client.pipeline(name)
-        return cls(name=name, parent_pipeline=parent_pipeline, dagger_pipeline=dagger_pipeline)
+        dagger_client = dagger_client.pipeline(name)
+        return cls(name=name, parent_pipeline=parent_pipeline, dagger_client=dagger_client)
 
 
 class PipelineContext(BaseModel, Singleton):
