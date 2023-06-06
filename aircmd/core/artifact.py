@@ -1,6 +1,8 @@
 
 from typing import Optional
 
+from dagger import CacheVolume
+
 from ..actions.environments import with_poetry
 from ..models.base import GlobalSettings, Pipeline, PipelineContext
 from ..models.click_commands import ClickCommandMetadata, ClickGroup
@@ -17,7 +19,19 @@ class BuildCommand(ClickCommandMetadata):
 
 async def build_task(parent_pipeline: Optional[Pipeline] = None) -> None:
     pipeline = await Pipeline.create("build", parent_pipeline=parent_pipeline)
-    await with_poetry(pipeline).exec(["ls"]).stdout()
+    mypy_cache: CacheVolume = pipeline.dagger_client.cache_volume("pip_cache")
+
+    ctr = (with_poetry(pipeline)
+            .with_directory("/src", pipeline.dagger_client.host().directory(".", include=["./aircmd", "./pyproject.toml", "./poetry.lock"]))
+            .with_workdir("/src")
+            .with_mounted_cache("/src/.mypy_cache", mypy_cache)
+            .with_exec(["poetry", "install"])
+            .with_exec(["poetry", "run", "mypy", "."])
+            .with_exec(["poetry", "run", "ruff", "."])
+            .with_exec(["poetry", "build"])
+    )
+
+    await ctr.stdout()
 
     #output = await ctr.stdout()
     #print(output[:300])
