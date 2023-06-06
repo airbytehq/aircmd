@@ -54,7 +54,6 @@ If you want to be able to run the aircmd command from anywhere without using poe
 
 Configuration is done in the following order:
 
-
  1 Load secrets using SOPS and store them in environment variables.                                                                                                   
  2 Load environment variables from .env file using python-dotenv                                                                                                     
  3 Use the GlobalSettings class that inherits from BaseSettings to automatically read the configuration from environment variables. This is an immutable singleton that is created as `aircmd` starts up
