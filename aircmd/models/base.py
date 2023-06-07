@@ -8,7 +8,6 @@ from typing import Any, Coroutine, List, Optional, Type
 import anyio
 import dagger
 from pydantic import BaseModel, Field, PrivateAttr
-from pydantic_settings import BaseSettings
 
 from ..plugin_manager import PluginManager
 
@@ -23,7 +22,7 @@ class Singleton:
 
     
 # Immutable. Use this for application configuration. Created at bootstrap.
-class GlobalSettings(BaseSettings):
+class GlobalSettings(Singleton):
     GITHUB_TOKEN: Optional[str] = Field(None, env="GITHUB_TOKEN")
     CI: bool = Field(False, env="CI")
     LOG_LEVEL: str = Field("WARNING", env="LOG_LEVEL")
