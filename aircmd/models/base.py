@@ -3,7 +3,7 @@ import os
 import platform
 import sys
 from glob import glob
-from typing import Any, Coroutine, List, Optional, Type
+from typing import Any, Coroutine, Dict, List, Optional, Type
 
 import anyio
 import dagger
@@ -138,7 +138,7 @@ class PipelineContext(BaseModel, Singleton):
         self.dagger_client = await dagger.Connection(dagger.Config(log_output=sys.stdout)).__aenter__()
         return self
 
-    async def __aexit__(self, exc_type, exc_value, traceback) -> None:
+    async def __aexit__(self, exc_type: Type[Any], exc_value: Dict[str, Any], traceback: Any) -> None:
         if self.dagger_client is not None:
             pass
 
@@ -151,10 +151,10 @@ class PipelineContext(BaseModel, Singleton):
             self.max_concurrency = max(self.max_concurrency_per_level.values())
 
 
-    async def run_pipelines(self, pipelines: List[Coroutine], concurrency: int) -> None:
+    async def run_pipelines(self, pipelines: List[Coroutine[Any, Any, Any]], concurrency: int) -> None:
         semaphore = anyio.Semaphore(concurrency)
 
-        async def run_pipeline_with_semaphore(pipeline: Coroutine) -> None:
+        async def run_pipeline_with_semaphore(pipeline: Coroutine[Any, Any, Any]) -> None:
             async with semaphore:
                 await self.update_concurrency(1, self._current_level)
                 await pipeline
