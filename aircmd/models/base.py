@@ -169,8 +169,7 @@ class PipelineContext(BaseModel, Singleton):
         print("All tasks completed")
         print(f"Maximum concurrency observed: {self.max_concurrency}")
 
-    def __init__(self,
-                 **data: Any):
+    def __init__(self, **data: Any):
         logger = logging.getLogger("PipelineContext")
         super().__init__(logger=logger, **data)
 
