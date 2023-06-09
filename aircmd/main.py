@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 
+import anyio
 from dotenv import load_dotenv
 
 from .core.artifact import core_group
@@ -48,6 +49,9 @@ cli.add_group(plugin_group) # commands to manage plugins
 cli.add_group(core_group) # commands to manage building, testing, and publishing aircmd
 
 def main() -> None:
+    anyio.run(async_main)
+
+async def async_main() -> None:
     # only show the banner when running `aircmd` with no arguments
     if len(sys.argv) == 1:
         display_welcome_message()
@@ -63,11 +67,12 @@ def main() -> None:
         cli.add_group(plugin_command_group)
 
     # Run the cli via its click entrypoint to parse arguments and delegate to the correct commands
-    cli.click_group()
+    await cli.click_group.main()
 
 
 if __name__ == "__main__":
-    main()
+    anyio.run(async_main)
+
 
 
 
