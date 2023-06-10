@@ -10,10 +10,11 @@ from __future__ import annotations
 import uuid
 from typing import List, Optional, Tuple
 
+import dagger
 from dagger import CacheSharingMode, CacheVolume, Container, Directory, File
 
 from ..models.base import GlobalSettings, PipelineContext
-from .pipelines import get_file_contents, get_repo_dir, with_exit_code
+from .pipelines import get_file_contents, get_repo_dir
 from .strings import slugify
 
 
@@ -337,10 +338,15 @@ async def load_image_to_docker_host(context: PipelineContext,
     docker_cli = with_docker_cli(context, settings, docker_service_name=docker_service_name).with_mounted_file(tar_name, tar_file)
 
     # Remove a previously existing image with the same tag if any.
-    docker_image_rm_exit_code = await with_exit_code(
-        docker_cli.with_env_variable("CACHEBUSTER", tar_name).with_exec(["docker", "image", "rm", image_tag])
-    )
-    if docker_image_rm_exit_code == 0:
+    try:
+        await (
+            docker_cli
+            .with_env_variable("CACHEBUSTER", tar_name)
+            .with_exec(["docker", "image", "rm", image_tag])
+        )
+    except dagger.ExecError:
+        pass
+    else:
         context.logger.info(f"Removed an existing image tagged {image_tag}")
     image_load_output = await docker_cli.with_exec(["docker", "load", "--input", tar_name]).stdout()
     context.logger.info(image_load_output)
