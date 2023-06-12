@@ -136,13 +136,14 @@ class PipelineContext(BaseModel, Singleton):
         arbitrary_types_allowed=True
 
     
-    async def __aenter__(self) -> 'PipelineContext':
-        self.dagger_client = await dagger.Connection(dagger.Config(log_output=sys.stdout)).__aenter__()
-        return self
-
-    async def __aexit__(self, exc_type: Type[Any], exc_value: Dict[str, Any], traceback: Any) -> None:
-        if self.dagger_client is not None:
-            pass
+    async def get_dagger_client(self) -> dagger.Client:
+        if not self._dagger_client:
+            connection = dagger.Connection(dagger.Config(log_output=sys.stdout))
+            self._dagger_client = await cast(
+                Coroutine[Any, Any, dagger.Client],
+                self._click_context.with_async_resource(connection),
+            )
+        return self._dagger_client
 
 
     async def update_concurrency(self, delta: int, level: int) -> None:
