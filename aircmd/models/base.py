@@ -124,7 +124,7 @@ class PipelineContext(BaseModel, Singleton):
     logger: logging.Logger
     current_running_tasks: int = 0
     max_concurrency: int = 0
-    max_concurrency_per_level: dict[int, int] = {}
+    max_concurrency_per_level: dict[int, int] = Field(default_factory=dict)
     concurrency_lock: anyio.Lock = anyio.Lock()
     _dagger_client: Optional[dagger.Client] = PrivateAttr()
     dagger_client: dagger.Client = Field(default=None, init=False)
