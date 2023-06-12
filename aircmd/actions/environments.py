@@ -10,10 +10,12 @@ from __future__ import annotations
 import uuid
 from typing import List, Optional, Tuple
 
+import dagger
 from dagger import CacheSharingMode, CacheVolume, Container, Directory, File
 
-from ..models.base import GlobalSettings, Pipeline
-from .pipelines import get_file_contents, get_repo_dir, with_exit_code
+from ..models.base import GlobalSettings, PipelineContext
+from .pipelines import get_file_contents, get_repo_dir
+
 from .strings import slugify
 
 
@@ -338,11 +340,17 @@ async def load_image_to_docker_host(pipeline: Pipeline,
     docker_cli = with_docker_cli(pipeline, settings, docker_service_name=docker_service_name).with_mounted_file(tar_name, tar_file)
 
     # Remove a previously existing image with the same tag if any.
-    docker_image_rm_exit_code = await with_exit_code(
-        docker_cli.with_env_variable("CACHEBUSTER", tar_name).with_exec(["docker", "image", "rm", image_tag])
-    )
-    if docker_image_rm_exit_code == 0:
-        print(f"Removed an existing image tagged {image_tag}")
+    try:
+        await (
+            docker_cli
+            .with_env_variable("CACHEBUSTER", tar_name)
+            .with_exec(["docker", "image", "rm", image_tag])
+        )
+    except dagger.ExecError:
+        pass
+    else:
+        context.logger.info(f"Removed an existing image tagged {image_tag}")
+
     image_load_output = await docker_cli.with_exec(["docker", "load", "--input", tar_name]).stdout()
     print(image_load_output)
     # Not tagged images only have a sha256 id the load output shares.

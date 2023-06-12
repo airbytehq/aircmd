@@ -7,7 +7,12 @@ from typing import Any, Coroutine, Dict, List, Optional, Type
 
 import anyio
 import dagger
-from pydantic import BaseModel, Field, PrivateAttr
+
+import platformdirs
+from dotenv import load_dotenv
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings
+
 
 from ..plugin_manager import PluginManager
 
@@ -28,21 +33,9 @@ class GlobalSettings(Singleton):
     LOG_LEVEL: str = Field("WARNING", env="LOG_LEVEL")
     PLATFORM: str = platform.system()
     POETRY_CACHE_DIR: str = Field(
-        default_factory=lambda: (
-            f"{os.path.expanduser('~')}/Library/Caches/pypoetry" if platform.system() == "Darwin"
-            else f"{os.path.expanduser('~')}/AppData/Local/pypoetry/Cache" if platform.system() == "Windows"
-            else f"{os.path.expanduser('~')}/.cache/pypoetry"
-        ),
+        default_factory=lambda: platformdirs.user_cache_dir("pypoetry"),
         env="POETRY_CACHE_DIR"
     )
-    PIP_CACHE_DIR: str = Field(                                                                                                                                          
-         default_factory=lambda: (                                                                                                                                        
-             f"{os.path.expanduser('~')}/Library/Caches/pip" if platform.system() == "Darwin"                                                                             
-             else f"{os.path.expanduser('~')}/AppData/Local/pip/Cache" if platform.system() == "Windows"                                                                  
-             else f"{os.path.expanduser('~')}/.cache/pip"                                                                                                                 
-         ),                                                                                                                                                               
-         env="PIP_CACHE_DIR"                                                                                                                                              
-     ) 
     MYPY_CACHE_DIR: str = Field("~/.cache/.mypy_cache", env="MYPY_CACHE_DIR")
     DEFAULT_PYTHON_EXCLUDE: List[str] = Field(["**/.venv", "**/__pycache__"], env="DEFAULT_PYTHON_EXCLUDE")
     DEFAULT_EXCLUDED_FILES: List[str] = Field(
@@ -71,6 +64,10 @@ class GlobalSettings(Singleton):
     SECRET_DOCKER_HUB_USERNAME: Optional[str] = Field(None, env="SECRET_DOCKER_HUB_USERNAME")
     SECRET_DOCKER_HUB_PASSWORD: Optional[str] = Field(None, env="SECRET_DOCKER_HUB_PASSWORD")
     
+    PIP_CACHE_DIR: str = Field(
+        default_factory=lambda: platformdirs.user_cache_dir("pip"),
+        env="PIP_CACHE_DIR"
+    )
 
     class Config:                                                                                                                                                        
          arbitrary_types_allowed = True                                                                                                                                   

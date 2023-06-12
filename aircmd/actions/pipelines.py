@@ -1,4 +1,3 @@
-import re
 from typing import List, Optional
 
 from dagger import Container, Directory, QueryError
@@ -53,29 +52,3 @@ async def get_file_contents(container: Container, path: str) -> Optional[str]:
             # this error could come from a network issue
             raise
     return None
-
-# This is a stop-gap solution to capture non 0 exit code on Containers
-# The original issue is tracked here https://github.com/dagger/dagger/issues/3192
-async def with_exit_code(container: Container) -> int:
-    """Read the container exit code.
-
-    If the exit code is not 0 a QueryError is raised. We extract the non-zero exit code from the QueryError message.
-
-    Args:
-        container (Container): The container from which you want to read the exit code.
-
-    Returns:
-        int: The exit code.
-    """
-    try:
-        await container.exit_code()
-    except QueryError as e:
-        error_message = str(e)
-        if "exit code: " in error_message:
-            exit_code = re.search(r"exit code: (\d+)", error_message)
-            if exit_code:
-                return int(exit_code.group(1))
-            else:
-                return 1
-        raise
-    return 0
