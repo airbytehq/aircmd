@@ -13,9 +13,8 @@ from typing import List, Optional, Tuple
 import dagger
 from dagger import CacheSharingMode, CacheVolume, Container, Directory, File
 
-from ..models.base import GlobalSettings, PipelineContext
+from ..models.base import GlobalSettings, Pipeline
 from .pipelines import get_file_contents, get_repo_dir
-
 from .strings import slugify
 
 

@@ -1,18 +1,14 @@
 import logging
-import os
 import platform
 import sys
-from glob import glob
-from typing import Any, Coroutine, Dict, List, Optional, Type
+from typing import Any, Coroutine, List, Optional, Type, cast
 
 import anyio
 import dagger
-
 import platformdirs
-from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from click import Context, get_current_context
+from pydantic import BaseModel, Field, PrivateAttr
 from pydantic_settings import BaseSettings
-
 
 from ..plugin_manager import PluginManager
 
@@ -27,7 +23,7 @@ class Singleton:
 
     
 # Immutable. Use this for application configuration. Created at bootstrap.
-class GlobalSettings(Singleton):
+class GlobalSettings(BaseSettings, Singleton):
     GITHUB_TOKEN: Optional[str] = Field(None, env="GITHUB_TOKEN")
     CI: bool = Field(False, env="CI")
     LOG_LEVEL: str = Field("WARNING", env="LOG_LEVEL")
