@@ -128,8 +128,8 @@ class PipelineContext(BaseModel, Singleton):
     max_concurrency: int = 0
     max_concurrency_per_level: dict[int, int] = Field(default_factory=dict)
     concurrency_lock: anyio.Lock = anyio.Lock()
-    _dagger_client: Optional[dagger.Client] = PrivateAttr()
-    dagger_client: dagger.Client = Field(default=None, init=False)
+    _dagger_client: Optional[dagger.Client] = PrivateAttr(default=None)
+    _click_context: Context = PrivateAttr(default_factory=get_current_context)
 
 
     class Config:
