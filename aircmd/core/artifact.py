@@ -19,7 +19,7 @@ class BuildCommand(ClickCommandMetadata):
 
 async def build_task(parent_pipeline: Optional[Pipeline] = None) -> None:
     pipeline = await Pipeline.create("build", parent_pipeline=parent_pipeline)
-    mypy_cache: CacheVolume = pipeline.dagger_client.cache_volume("pip_cache")
+    mypy_cache: CacheVolume = pipeline.dagger_client.cache_volume("mypy_cache")
 
     ctr = (with_poetry(pipeline)
             .with_directory("/src", pipeline.dagger_client.host().directory(".", include=["./aircmd", "./pyproject.toml", "./poetry.lock"]))
