@@ -46,18 +46,21 @@ class GlobalSettings(Singleton):
     MYPY_CACHE_DIR: str = Field("~/.cache/.mypy_cache", env="MYPY_CACHE_DIR")
     DEFAULT_PYTHON_EXCLUDE: List[str] = Field(["**/.venv", "**/__pycache__"], env="DEFAULT_PYTHON_EXCLUDE")
     DEFAULT_EXCLUDED_FILES: List[str] = Field(
-        [".git"]
-        + glob("**/build", recursive=True)
-        + glob("**/.venv", recursive=True)
-        + glob("**/secrets", recursive=True)
-        + glob("**/__pycache__", recursive=True)
-        + glob("**/*.egg-info", recursive=True)
-        + glob("**/.vscode", recursive=True)
-        + glob("**/.pytest_cache", recursive=True)
-        + glob("**/.eggs", recursive=True)
-        + glob("**/.mypy_cache", recursive=True)
-        + glob("**/.DS_Store", recursive=True)
-    , env="DEFAULT_EXCLUDED_FILES") 
+        [
+            ".git",
+            "**/build",
+            "**/.venv",
+            "**/secrets",
+            "**/__pycache__",
+            "**/*.egg-info",
+            "**/.vscode",
+            "**/.pytest_cache",
+            "**/.eggs",
+            "**/.mypy_cache",
+            "**/.DS_Store",
+        ],
+        env="DEFAULT_EXCLUDED_FILES"
+    )
     DOCKER_VERSION:str = Field("20.10.23", env="DOCKER_VERSION")
     DOCKER_DIND_IMAGE: str = Field("docker:20-dind", env="DOCKER_DIND_IMAGE")
     DOCKER_CLI_IMAGE: str = Field("docker:20-cli", env="DOCKER_CLI_IMAGE")
