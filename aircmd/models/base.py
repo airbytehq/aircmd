@@ -110,8 +110,7 @@ class Pipeline(BaseModel):
     async def create(cls, name: str, parent_pipeline: Optional['Pipeline'] = None) -> 'Pipeline':
         if parent_pipeline is None:
             # This is a top-level pipeline. Get the Dagger client from the current PipelineContext.
-            async with PipelineContext() as ctx:
-                dagger_client = ctx.dagger_client
+            dagger_client = await PipelineContext().get_dagger_client()
         else:
             # This is a nested pipeline. Get the Dagger client from the parent pipeline.
             dagger_client = parent_pipeline.dagger_client
