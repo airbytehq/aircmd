@@ -132,10 +132,7 @@ class PipelineContext(BaseModel, Singleton):
     async def get_dagger_client(self) -> dagger.Client:
         if not self._dagger_client:
             connection = dagger.Connection(dagger.Config(log_output=sys.stdout))
-            self._dagger_client = await cast(
-                Coroutine[Any, Any, dagger.Client],
-                self._click_context.with_async_resource(connection),
-            )
+            self._dagger_client = await self._click_context.with_async_resource(connection)  # type: ignore
         return self._dagger_client
 
 
