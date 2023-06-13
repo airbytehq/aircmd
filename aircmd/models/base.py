@@ -6,7 +6,7 @@ from typing import Any, Coroutine, List, Optional, Type, cast
 import anyio
 import dagger
 import platformdirs
-from click import Context, get_current_context
+from asyncclick import Context, get_current_context
 from pydantic import BaseModel, Field, PrivateAttr
 from pydantic_settings import BaseSettings
 
@@ -174,6 +174,7 @@ class PipelineContext(BaseModel, Singleton):
 class GlobalContext(BaseModel, Singleton):
     plugin_manager: PluginManager
     pipeline_context: Optional[PipelineContext] = None
+    click_context: Optional[Context] = None
 
     class Config:
         arbitrary_types_allowed = True
