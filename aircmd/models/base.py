@@ -1,7 +1,7 @@
 import logging
 import platform
 import sys
-from typing import Any, Coroutine, List, Optional, Type, cast
+from typing import Any, Coroutine, List, Optional, Type
 
 import anyio
 import dagger
@@ -133,7 +133,7 @@ class PipelineContext(BaseModel, Singleton):
         if not self._dagger_client:
             connection = dagger.Connection(dagger.Config(log_output=sys.stdout))
             self._dagger_client = await self._click_context.with_async_resource(connection)  # type: ignore
-        return self._dagger_client
+        return self._dagger_client  # type: ignore
 
 
     async def update_concurrency(self, delta: int, level: int) -> None:

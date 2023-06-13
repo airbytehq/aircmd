@@ -14,11 +14,12 @@ import dagger
 from dagger import CacheSharingMode, CacheVolume, Container, Directory, File
 
 from ..models.base import GlobalSettings, Pipeline
+from .constants import CRANE_DEBUG_IMAGE, PYTHON_IMAGE
 from .pipelines import get_file_contents, get_repo_dir
 from .strings import slugify
 
 
-def with_python_base(pipeline: Pipeline, python_image_name: str = "python:3.11-slim") -> Container:
+def with_python_base(pipeline: Pipeline, python_image_name: str = PYTHON_IMAGE) -> Container:
     """Build a Python container with a cache volume for pip cache.
     
     Args:
@@ -406,7 +407,8 @@ def with_crane(
 
     # We use the debug image as it contains a shell which we need to properly use environment variables
     # https://github.com/google/go-containerregistry/tree/main/cmd/crane#images
-    base_container = pipeline.dagger_client.container().from_("gcr.io/go-containerregistry/crane/debug:v0.15.1")
+
+    base_container = pipeline.dagger_client.container().from_(CRANE_DEBUG_IMAGE)
     if settings.SECRET_DOCKER_HUB_USERNAME and settings.SECRET_DOCKER_HUB_PASSWORD:
         dockerhub_user = pipeline.dagger_client.set_secret("docker_hub_username", settings.SECRET_DOCKER_HUB_USERNAME)
         dockerhub_password = pipeline.dagger_client.set_secret("docker_hub_password", settings.SECRET_DOCKER_HUB_PASSWORD)
