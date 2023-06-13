@@ -1,7 +1,8 @@
-from dotenv import load_dotenv
 import os
 import subprocess
-from typing import Any, Type
+
+from dotenv import load_dotenv
+
 
 def load_secrets_from_file(secrets_file: str) -> None:
     """Decrypt the secrets file using SOPS and load it into environment variables."""

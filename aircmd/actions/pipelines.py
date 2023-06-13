@@ -2,10 +2,10 @@ from typing import List, Optional
 
 from dagger import Container, Directory, QueryError
 
-from ..models.base import GlobalSettings, PipelineContext
+from ..models.base import GlobalSettings, Pipeline
 
 
-def get_repo_dir(context: PipelineContext, settings: GlobalSettings, subdir: str = ".", exclude: Optional[List[str]] = None, include: Optional[List[str]] = None) -> Directory:
+def get_repo_dir(pipeline: Pipeline, settings: GlobalSettings, subdir: str = ".", exclude: Optional[List[str]] = None, include: Optional[List[str]] = None) -> Directory:
 
     """Get a directory from the current repository.
 
@@ -32,7 +32,7 @@ def get_repo_dir(context: PipelineContext, settings: GlobalSettings, subdir: str
     if subdir != ".":
         subdir = f"{subdir}/" if not subdir.endswith("/") else subdir
         exclude = [f.replace(subdir, "") for f in exclude if subdir in f]
-    return context.dagger_client.host().directory(subdir, exclude=exclude, include=include)
+    return pipeline.dagger_client.host().directory(subdir, exclude=exclude, include=include)
 
 async def get_file_contents(container: Container, path: str) -> Optional[str]:
     """Retrieve a container file contents.

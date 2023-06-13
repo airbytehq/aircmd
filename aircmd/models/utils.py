@@ -5,7 +5,8 @@ from typing import Any, Callable, List
 from asyncclick import Argument, Command, Group, Option, Parameter
 
 from ..models.click_commands import TYPE_MAPPING, ClickCommand, ClickGroup
-from ..models.click_params import ClickArgument, ClickFlag, ClickOption, ClickParam
+from ..models.click_params import (ClickArgument, ClickFlag, ClickOption,
+                                   ClickParam)
 
 
 def add_parameter(params: List[Parameter], parameter_model: ClickParam) -> None:
@@ -80,7 +81,7 @@ def map_pyd_grp_to_click_group(group_model: ClickGroup) -> Group:
 
 
 
-def make_pass_decorator(object_type, ensure: bool=False) -> Callable[..., Any]:
+def make_pass_decorator(object_type: Any, ensure: bool=False) -> Callable[..., Any]:
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         sig = signature(f)
         params = sig.parameters
