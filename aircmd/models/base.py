@@ -174,7 +174,7 @@ class PipelineContext(BaseModel, Singleton):
 class GlobalContext(BaseModel, Singleton):
     plugin_manager: PluginManager
     pipeline_context: Optional[PipelineContext] = None
-    click_context: Optional[Context] = None
+    _click_context: Optional[Context] = None
 
     class Config:
         arbitrary_types_allowed = True

@@ -49,8 +49,8 @@ cli = ClickGroup(group_name=None, group_help="Aircmd: A CLI for Airbyte")
 cli.add_group(plugin_group)  # commands to manage plugins
 cli.add_group(core_group)  # commands to manage building, testing, and publishing aircmd
 
-# Store the current Click context in the GlobalContext object
-gctx.click_context = Context(cli.click_group)
+# Store the current Click context in the GlobalContext object as a private attribute
+gctx._click_context = Context(cli.click_group)
 
 def main() -> None:
     anyio.run(async_main)

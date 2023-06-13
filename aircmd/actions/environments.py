@@ -348,7 +348,7 @@ async def load_image_to_docker_host(pipeline: Pipeline,
     except dagger.ExecError:
         pass
     else:
-        context.logger.info(f"Removed an existing image tagged {image_tag}")
+        print(f"Removed an existing image tagged {image_tag}")
 
     image_load_output = await docker_cli.with_exec(["docker", "load", "--input", tar_name]).stdout()
     print(image_load_output)
