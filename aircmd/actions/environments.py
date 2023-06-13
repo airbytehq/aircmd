@@ -368,7 +368,7 @@ def with_poetry(pipeline: Pipeline) -> Container:
     Returns:
         Container: A python environment with poetry installed.
     """
-    python_base_environment: Container = with_python_base(pipeline, "python:3.11-slim")
+    python_base_environment: Container = with_python_base(pipeline, PYTHON_IMAGE)
     python_with_git = with_debian_packages(python_base_environment, ["git"])
     python_with_poetry = with_pip_packages(python_with_git, ["poetry"])
 
