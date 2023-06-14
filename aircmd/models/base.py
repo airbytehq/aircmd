@@ -98,7 +98,7 @@ class Pipeline(BaseModel):
 class ConditionalPipeline(Pipeline):                                                                                                                                                                                                                                                                              
     run_condition: RunCondition    
 
-class PipelineContext(BaseModel):
+class PipelineContext(BaseModel, Singleton):
     _current_level: int = 0
     current_running_tasks: int = 0
     max_concurrency: int = 0
