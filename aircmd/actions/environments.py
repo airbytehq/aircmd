@@ -11,15 +11,16 @@ import uuid
 from typing import List, Optional, Tuple
 
 import dagger
-from dagger import CacheSharingMode, CacheVolume, Container, Directory, File
+from dagger import (CacheSharingMode, CacheVolume, Client, Container,
+                    Directory, File)
 
-from ..models.base import GlobalSettings, Pipeline
+from ..models.base import GlobalSettings
 from .constants import CRANE_DEBUG_IMAGE, PYTHON_IMAGE
 from .pipelines import get_file_contents, get_repo_dir
 from .strings import slugify
 
 
-def with_python_base(pipeline: Pipeline, python_image_name: str = PYTHON_IMAGE) -> Container:
+def with_python_base(client: Client, python_image_name: str = PYTHON_IMAGE) -> Container:
     """Build a Python container with a cache volume for pip cache.
     
     Args:
@@ -35,10 +36,10 @@ def with_python_base(pipeline: Pipeline, python_image_name: str = PYTHON_IMAGE) 
     
     if not python_image_name.startswith("python:3"):
         raise ValueError("You have to use a python image to build the python base environment")
-    pip_cache: CacheVolume = pipeline.dagger_client.cache_volume("pip_cache")
+    pip_cache: CacheVolume = client.cache_volume("pip_cache")
 
     base_container = (
-        pipeline.dagger_client.container()
+        client.container()
         .from_(python_image_name)
         .with_mounted_cache("/root/.cache/pip", pip_cache)
         .with_exec(["pip", "install", "--upgrade", "pip"])
@@ -47,7 +48,7 @@ def with_python_base(pipeline: Pipeline, python_image_name: str = PYTHON_IMAGE) 
     return base_container
 
 
-def with_testing_dependencies(pipeline: Pipeline, settings: GlobalSettings, pyproj_path: str, test_reqs: List[str]) -> Container:
+def with_testing_dependencies(client: Client, settings: GlobalSettings, pyproj_path: str, test_reqs: List[str]) -> Container:
     """Build a testing environment by installing testing dependencies on top of a python base environment.
 
     Args:
@@ -56,15 +57,15 @@ def with_testing_dependencies(pipeline: Pipeline, settings: GlobalSettings, pypr
     Returns:
         Container: The testing environment container.
     """
-    python_environment: Container = with_python_base(pipeline)
-    pyproject_toml_file = get_repo_dir(pipeline, settings,".", include=[pyproj_path]).file(pyproj_path)
+    python_environment: Container = with_python_base(client)
+    pyproject_toml_file = get_repo_dir(client, settings,".", include=[pyproj_path]).file(pyproj_path)
     return python_environment.with_exec(["pip", "install"] + test_reqs).with_file(
         f"/{test_reqs}", pyproject_toml_file
     )
 
 
 def with_python_package(
-    pipeline: Pipeline,
+    client: Client,
     settings: GlobalSettings,
     python_environment: Container,
     package_source_code_path: str,
@@ -86,7 +87,7 @@ def with_python_package(
         exclude = settings.DEFAULT_PYTHON_EXCLUDE + exclude
     else:
         exclude = settings.DEFAULT_PYTHON_EXCLUDE
-    package_source_code_directory: Directory = get_repo_dir(pipeline, settings, package_source_code_path, exclude=exclude)
+    package_source_code_directory: Directory = get_repo_dir(client, settings, package_source_code_path, exclude=exclude)
     container = python_environment.with_mounted_directory("/" + package_source_code_path, package_source_code_directory).with_workdir(
         "/" + package_source_code_path
     )
@@ -94,7 +95,7 @@ def with_python_package(
 
 
 async def with_installed_python_package(
-    pipeline: Pipeline,
+    client: Client,
     settings: GlobalSettings,
     python_environment: Container,
     package_source_code_path: str,
@@ -116,13 +117,13 @@ async def with_installed_python_package(
     install_local_requirements_cmd = ["python", "-m", "pip", "install", "-r", "requirements.txt"]
     install_connector_package_cmd = ["python", "-m", "pip", "install", "."]
 
-    container = with_python_package(pipeline, settings, python_environment, package_source_code_path, exclude=exclude)
+    container = with_python_package(client, settings, python_environment, package_source_code_path, exclude=exclude)
     if requirements_txt := await get_file_contents(container, "requirements.txt"):
         for line in requirements_txt.split("\n"):
             if line.startswith("-e ."):
                 local_dependency_path = package_source_code_path + "/" + line[3:]
                 container = container.with_mounted_directory(
-                    "/" + local_dependency_path, get_repo_dir(pipeline, settings, local_dependency_path, exclude=settings.DEFAULT_PYTHON_EXCLUDE)
+                    "/" + local_dependency_path, get_repo_dir(client, settings, local_dependency_path, exclude=settings.DEFAULT_PYTHON_EXCLUDE)
                 )
         container = container.with_exec(install_local_requirements_cmd)
 
@@ -176,7 +177,7 @@ def with_pip_packages(base_container: Container, packages_to_install: List[str])
     return base_container.with_exec(package_install_command + packages_to_install)
 
 def with_dockerd_service(
-    pipeline: Pipeline, settings: GlobalSettings, shared_volume: Optional[Tuple[str, CacheVolume]] = None, docker_service_name: Optional[str] = None
+    client: Client, settings: GlobalSettings, shared_volume: Optional[Tuple[str, CacheVolume]] = None, docker_service_name: Optional[str] = None
 ) -> Container:
     """Create a container running dockerd, exposing its 2375 port, can be used as the docker host for docker-in-docker use cases.
 
@@ -192,11 +193,11 @@ def with_dockerd_service(
     if docker_service_name:
         docker_lib_volume_name = f"{docker_lib_volume_name}-{slugify(docker_service_name)}"
     dind = (
-        pipeline.dagger_client.container()
+        client.container()
         .from_(settings.DOCKER_DIND_IMAGE)
         .with_mounted_cache(
             "/var/lib/docker",
-            pipeline.dagger_client.cache_volume(docker_lib_volume_name),
+            client.cache_volume(docker_lib_volume_name),
             sharing=CacheSharingMode.SHARED,
         )
     )
@@ -208,7 +209,7 @@ def with_dockerd_service(
 
 
 def with_bound_docker_host(
-    pipeline: Pipeline,
+    client: Client,
     settings: GlobalSettings,
     container: Container,
     shared_volume: Optional[Tuple[str, CacheVolume]] = None,
@@ -225,7 +226,7 @@ def with_bound_docker_host(
     Returns:
         Container: The container bound to the docker host.
     """
-    dockerd = with_dockerd_service(pipeline, settings, shared_volume, docker_service_name)
+    dockerd = with_dockerd_service(client, settings, shared_volume, docker_service_name)
     docker_lib_volume_name = f"{shared_volume[0]}-docker-lib" if shared_volume is not None else "docker-lib"
     docker_hostname = docker_lib_volume_name
     if docker_service_name:
@@ -237,7 +238,7 @@ def with_bound_docker_host(
 
 
 def with_docker_cli(
-    pipeline: Pipeline, settings: GlobalSettings, shared_volume: Optional[Tuple[str, CacheVolume]] = None, docker_service_name: Optional[str] = None
+    client: Client, settings: GlobalSettings, shared_volume: Optional[Tuple[str, CacheVolume]] = None, docker_service_name: Optional[str] = None
 ) -> Container:
     """Create a container with the docker CLI installed and bound to a persistent docker host.
 
@@ -249,12 +250,12 @@ def with_docker_cli(
     Returns:
         Container: A docker cli container bound to a docker host.
     """
-    docker_cli = pipeline.dagger_client.container().from_(settings.DOCKER_CLI_IMAGE)
-    return with_bound_docker_host(pipeline, settings, docker_cli, shared_volume, docker_service_name)
+    docker_cli = client.container().from_(settings.DOCKER_CLI_IMAGE)
+    return with_bound_docker_host(client, settings, docker_cli, shared_volume, docker_service_name)
 
 
 def with_gradle(
-    pipeline: Pipeline,
+    client: Client,
     settings: GlobalSettings,
     sources_to_include: Optional[List[str]] = None,
     bind_to_docker_host: bool = True,
@@ -294,13 +295,13 @@ def with_gradle(
     if sources_to_include:
         include += sources_to_include
 
-    gradle_dependency_cache: CacheVolume = pipeline.dagger_client.cache_volume("gradle-dependencies-caching")
-    gradle_build_cache: CacheVolume = pipeline.dagger_client.cache_volume("gradle-build-cache")
+    gradle_dependency_cache: CacheVolume = client.cache_volume("gradle-dependencies-caching")
+    gradle_build_cache: CacheVolume = client.cache_volume("gradle-build-cache")
 
-    shared_tmp_volume = ("/tmp", pipeline.dagger_client.cache_volume("share-tmp-gradle"))
+    shared_tmp_volume = ("/tmp", client.cache_volume("share-tmp-gradle"))
 
     openjdk_with_docker = (
-        pipeline.dagger_client.container()
+        client.container()
         .from_("openjdk:17.0.1-jdk-slim")
         .with_exec(["apt-get", "update"])
         .with_exec(["apt-get", "install", "-y", "curl", "jq", "rsync"])
@@ -309,7 +310,7 @@ def with_gradle(
         .with_env_variable("GRADLE_HOME", "/root/.gradle")
         .with_exec(["mkdir", "/airbyte"])
         .with_workdir("/airbyte")
-        .with_mounted_directory("/airbyte", get_repo_dir(pipeline, settings, ".", include=include))
+        .with_mounted_directory("/airbyte", get_repo_dir(client, settings, ".", include=include))
         .with_exec(["mkdir", "-p", settings.GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH])
         .with_mounted_cache(settings.GRADLE_BUILD_CACHE_PATH, gradle_build_cache, sharing=CacheSharingMode.LOCKED)
         .with_mounted_cache(settings.GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH, gradle_dependency_cache)
@@ -317,12 +318,12 @@ def with_gradle(
     )
 
     if bind_to_docker_host:
-        return with_bound_docker_host(pipeline, settings, openjdk_with_docker, shared_tmp_volume, docker_service_name=docker_service_name)
+        return with_bound_docker_host(client, settings, openjdk_with_docker, shared_tmp_volume, docker_service_name=docker_service_name)
     else:
         return openjdk_with_docker
 
 
-async def load_image_to_docker_host(pipeline: Pipeline, 
+async def load_image_to_docker_host(client: Client, 
                                     settings: GlobalSettings,
                                     tar_file: File, 
                                     image_tag: str, 
@@ -337,7 +338,7 @@ async def load_image_to_docker_host(pipeline: Pipeline,
     """
     # Hacky way to make sure the image is always loaded
     tar_name = f"{str(uuid.uuid4())}.tar"
-    docker_cli = with_docker_cli(pipeline, settings, docker_service_name=docker_service_name).with_mounted_file(tar_name, tar_file)
+    docker_cli = with_docker_cli(client, settings, docker_service_name=docker_service_name).with_mounted_file(tar_name, tar_file)
 
     # Remove a previously existing image with the same tag if any.
     try:
@@ -360,7 +361,7 @@ async def load_image_to_docker_host(pipeline: Pipeline,
         print(docker_tag_output)
 
 
-def with_poetry(pipeline: Pipeline) -> Container:
+def with_poetry(client: Client) -> Container:
     """Install poetry in a python environment.
 
     Args:
@@ -368,17 +369,17 @@ def with_poetry(pipeline: Pipeline) -> Container:
     Returns:
         Container: A python environment with poetry installed.
     """
-    python_base_environment: Container = with_python_base(pipeline, PYTHON_IMAGE)
+    python_base_environment: Container = with_python_base(client, PYTHON_IMAGE)
     python_with_git = with_debian_packages(python_base_environment, ["git"])
     python_with_poetry = with_pip_packages(python_with_git, ["poetry"])
 
-    poetry_cache: CacheVolume = pipeline.dagger_client.cache_volume("poetry_cache")
+    poetry_cache: CacheVolume = client.cache_volume("poetry_cache")
     python_with_poetry.with_mounted_cache("/root/.cache/pypoetry", poetry_cache, sharing=CacheSharingMode.SHARED)
 
     return python_with_poetry
 
 
-def with_poetry_module(pipeline: Pipeline, parent_dir: Directory, module_path: str) -> Container:
+def with_poetry_module(client: Client, parent_dir: Directory, module_path: str) -> Container:
     """Sets up a Poetry module.
 
     Args:
@@ -388,7 +389,7 @@ def with_poetry_module(pipeline: Pipeline, parent_dir: Directory, module_path: s
     """
     poetry_install_dependencies_cmd = ["poetry", "install"]
 
-    python_with_poetry = with_poetry(pipeline)
+    python_with_poetry = with_poetry(client)
     return (
         python_with_poetry.with_mounted_directory("/src", parent_dir)
         .with_workdir(f"/src/{module_path}")
@@ -397,7 +398,7 @@ def with_poetry_module(pipeline: Pipeline, parent_dir: Directory, module_path: s
     )
 
 def with_crane(
-    pipeline: Pipeline,
+    client: Client,
     settings: GlobalSettings
 ) -> Container:
     """Crane is a tool to analyze and manipulate container images.
@@ -408,10 +409,10 @@ def with_crane(
     # We use the debug image as it contains a shell which we need to properly use environment variables
     # https://github.com/google/go-containerregistry/tree/main/cmd/crane#images
 
-    base_container = pipeline.dagger_client.container().from_(CRANE_DEBUG_IMAGE)
+    base_container = client.container().from_(CRANE_DEBUG_IMAGE)
     if settings.SECRET_DOCKER_HUB_USERNAME and settings.SECRET_DOCKER_HUB_PASSWORD:
-        dockerhub_user = pipeline.dagger_client.set_secret("docker_hub_username", settings.SECRET_DOCKER_HUB_USERNAME)
-        dockerhub_password = pipeline.dagger_client.set_secret("docker_hub_password", settings.SECRET_DOCKER_HUB_PASSWORD)
+        dockerhub_user = client.set_secret("docker_hub_username", settings.SECRET_DOCKER_HUB_USERNAME)
+        dockerhub_password = client.set_secret("docker_hub_password", settings.SECRET_DOCKER_HUB_PASSWORD)
         base_container = (
             base_container
             .with_secret_variable("DOCKER_HUB_USERNAME", dockerhub_user)

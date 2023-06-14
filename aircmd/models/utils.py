@@ -1,12 +1,42 @@
 from functools import wraps
 from inspect import signature
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Optional
 
 from asyncclick import Argument, Command, Group, Option, Parameter
+from pydantic import BaseModel
 
 from ..models.click_commands import TYPE_MAPPING, ClickCommand, ClickGroup
 from ..models.click_params import (ClickArgument, ClickFlag, ClickOption,
                                    ClickParam)
+
+
+class RunCondition(BaseModel):
+    condition_type: str
+    condition_value: Optional[str] = None
+
+    def check_condition(self, results: List) -> bool:
+        for result in results:
+            if self.condition_value is not None and result.get("id") != self.condition_value:
+                continue
+
+            if self.condition_type == "onFail" and result.get("status") == "failed":
+                return True
+            elif self.condition_type == "onPass" and result.get("status") == "passed":
+                return True
+            elif self.condition_type == "onSkip" and result.get("status") == "skipped":
+                return True
+
+        return False
+
+def onFail(id: Optional[str] = None) -> RunCondition:
+    return RunCondition(condition_type="onFail", condition_value=id)
+
+def onPass(id: Optional[str] = None) -> RunCondition:
+    return RunCondition(condition_type="onPass", condition_value=id)
+
+def onSkip(id: Optional[str] = None) -> RunCondition:
+    return RunCondition(condition_type="onSkip", condition_value=id)
+
 
 
 def add_parameter(params: List[Parameter], parameter_model: ClickParam) -> None:

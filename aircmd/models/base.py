@@ -1,7 +1,7 @@
 import logging
 import platform
 import sys
-from typing import Any, Coroutine, List, Optional, Type
+from typing import Any, Callable, List, Optional, Type, Union
 
 import anyio
 import dagger
@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 from pydantic_settings import BaseSettings
 
 from ..plugin_manager import PluginManager
+from .utils import RunCondition
 
 
 class Singleton:
@@ -70,49 +71,57 @@ class GlobalSettings(BaseSettings, Singleton):
          env_file = '.env' 
 
 
-'''
-In the case of modeling CI pipelines, the child-knows-parent approach seems more suitable for the 
-following reasons:                                                                                
 
- 1 Analyzing individual pipeline runs: When you want to analyze a specific pipeline run, you might
-   need to compare it with its parent or ancestor runs to understand the differences or           
-   improvements. In this case, having a reference to the parent pipeline makes it easier to       
-   traverse up the pipeline hierarchy.                                                            
- 2 Dependency tracking: In some CI systems, a pipeline run might depend on the successful         
-   completion of its parent or ancestor runs. With the child-knows-parent approach, you can easily
-   check the status of the parent pipelines and determine if the current pipeline run should      
-   proceed or not.                                                                                
- 3 Debugging and troubleshooting: When a pipeline run fails, you might need to investigate the    
-   cause of the failure by looking at the parent or ancestor runs. The child-knows-parent approach
-   allows you to easily navigate up the pipeline hierarchy to find the relevant information.      
 
-While it's true that some use cases might require traversing the pipeline hierarchy from the root 
-to the leaves, these cases are less common in CI systems. The child-knows-parent approach provides
-more flexibility and ease of use for the typical operations performed on CI pipelines.        
 
-'''
+class PipelineResult(BaseModel):
+    id: Optional[str] = None
+    status: str
+    data: Any
+
 class Pipeline(BaseModel):
     name: str
-    parent_pipeline: Optional['Pipeline']
     dagger_client: dagger.Client
-
+    steps: List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline', List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline']]]] = []
+    callback: Optional[Callable[..., Any]] = None
     class Config:
         arbitrary_types_allowed=True
 
     @classmethod
-    async def create(cls, name: str, parent_pipeline: Optional['Pipeline'] = None) -> 'Pipeline':
-        if parent_pipeline is None:
+    async def create(cls, name: str, parent_client: Optional[dagger.Client] = None, steps: List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline', List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline']]]] = [], callback: Optional[Callable[..., Any]] = None) -> 'Pipeline':
+        if parent_client:
+            # Use the dagger_client from the parent_client
+            dagger_client = parent_client.pipeline(name)
+        else:
             # This is a top-level pipeline. Get the Dagger client from the current PipelineContext.
             dagger_client = await PipelineContext().get_dagger_client()
+            dagger_client = dagger_client.pipeline(name)
+
+        return cls(name=name, dagger_client=dagger_client, steps=steps, callback=callback)
+        if parent_client:
+            # Use the dagger_client from the parent_client
+            dagger_client = parent_client.pipeline(name)
         else:
-            # This is a nested pipeline. Get the Dagger client from the parent pipeline.
-            dagger_client = parent_pipeline.dagger_client
+            # This is a top-level pipeline. Get the Dagger client from the current PipelineContext.
+            dagger_client = await PipelineContext().get_dagger_client()
+            dagger_client = dagger_client.pipeline(name)
 
-        # Create the pipeline using the appropriate Dagger client.
-       
-        dagger_client = dagger_client.pipeline(name)
-        return cls(name=name, parent_pipeline=parent_pipeline, dagger_client=dagger_client)
+        return cls(name=name, dagger_client=dagger_client)
 
+    async def run(self, previous_result: Optional[PipelineResult] = None, client: Optional[dagger.Client] = None) -> PipelineResult:                                     
+        result = previous_result 
+        for step in self.steps:                                                                                                                                         
+            if isinstance(step, Pipeline):                                                                                                                                 
+                result = await step.run(result, client)                                                                                                             
+            elif callable(step):                                                                                                                                           
+                result = await step(result, client)                                                                                                                 
+            elif isinstance(step, list):                                                                                                                                     
+                # Implement parallel execution logic here                                                                                                                    
+                pass                                                                                                                                                         
+        return result    
+
+class ConditionalPipeline(Pipeline):                                                                                                                                                                                                                                                                              
+    run_condition: RunCondition    
 
 class PipelineContext(BaseModel, Singleton):
     _current_level: int = 0
@@ -124,6 +133,7 @@ class PipelineContext(BaseModel, Singleton):
     _dagger_client: Optional[dagger.Client] = PrivateAttr(default=None)
     _click_context: Context = PrivateAttr(default_factory=get_current_context)
 
+                                                                                                                                                                                                                                                    
 
     class Config:
         arbitrary_types_allowed=True
@@ -142,25 +152,6 @@ class PipelineContext(BaseModel, Singleton):
             current_level_concurrency = self.max_concurrency_per_level.get(level, 0) + delta
             self.max_concurrency_per_level[level] = max(self.max_concurrency_per_level.get(level, 0), current_level_concurrency)
             self.max_concurrency = max(self.max_concurrency_per_level.values())
-
-
-    async def run_pipelines(self, pipelines: List[Coroutine[Any, Any, Any]], concurrency: int) -> None:
-        semaphore = anyio.Semaphore(concurrency)
-
-        async def run_pipeline_with_semaphore(pipeline: Coroutine[Any, Any, Any]) -> None:
-            async with semaphore:
-                await self.update_concurrency(1, self._current_level)
-                await pipeline
-                await self.update_concurrency(-1, self._current_level)
-
-
-        self._current_level += 1
-        async with anyio.create_task_group() as tg:
-            for pipeline in pipelines:
-                tg.start_soon(run_pipeline_with_semaphore, pipeline)
-        self._current_level -= 1
-        print("All tasks completed")
-        print(f"Maximum concurrency observed: {self.max_concurrency}")
 
     def __init__(self, **data: Any):
         logger = logging.getLogger("PipelineContext")
@@ -184,7 +175,3 @@ class GlobalContext(BaseModel, Singleton):
         if plugin_manager is None:
             plugin_manager = PluginManager()
         super().__init__(plugin_manager=plugin_manager, **data)
-
-
-
-# Remove the pipeline decorator
