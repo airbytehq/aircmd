@@ -1,9 +1,10 @@
 
 
-from dagger import CacheVolume, Client
+from dagger import CacheVolume
 
 from ..actions.environments import with_poetry
-from ..models.base import GlobalSettings, PipelineContext, PipelineResult
+from ..models.base import (GlobalSettings, Pipeline, PipelineContext,
+                           PipelineResult)
 from ..models.click_commands import ClickCommandMetadata, ClickGroup
 from ..models.utils import make_pass_decorator
 
@@ -16,7 +17,8 @@ class BuildCommand(ClickCommandMetadata):
     command_name: str = "build"
     command_help: str = "Builds aircmd"
 
-async def build_task(client: Client) -> PipelineResult:
+async def build_task(pipeline: Pipeline, previous_result: PipelineResult) -> PipelineResult:
+    client = pipeline.client
     mypy_cache: CacheVolume = client.cache_volume("mypy_cache")
     result = (with_poetry(client)
             .with_directory("/src", client.host().directory(".", include=["./pyproject.toml", "./poetry.lock"]))
@@ -24,7 +26,6 @@ async def build_task(client: Client) -> PipelineResult:
             .with_exec(["poetry", "install"])
             .with_directory("/src", client.host().directory(".", include=["./aircmd", "./pyproject.toml", "./poetry.lock"]))
             .with_mounted_cache("/src/.mypy_cache", mypy_cache)
-
             #.with_exec(["poetry", "run", "mypy", "."])
             #.with_exec(["poetry", "run", "ruff", "."])
             .with_exec(["poetry", "build"])
@@ -33,7 +34,8 @@ async def build_task(client: Client) -> PipelineResult:
     pipeline_result = PipelineResult(status="success", data=result)
     return pipeline_result
 
-async def test_task(build_result: PipelineResult, client: Client) -> PipelineResult:
+async def test_task(pipeline: Pipeline, build_result: PipelineResult) -> PipelineResult:
+    client = pipeline.client
     mypy_cache: CacheVolume = client.cache_volume("mypy_cache")
     result = (with_poetry(client)
             .with_directory("/src", client.host().directory(".", include=["./tests", "./pyproject.toml", "./poetry.lock"]))
@@ -57,20 +59,19 @@ class CICommand(ClickCommandMetadata):
 @pass_pipeline_context
 async def build(ctx: PipelineContext) -> None:
     dagger_client = await ctx.get_dagger_client()
-    build_pipeline_client = dagger_client.pipeline("build")
-    await build_task(client=build_pipeline_client)
+    build_pipeline = Pipeline("build", steps=[build_task], client=dagger_client.pipeline("build"))
+    await ctx.execute_pipeline(build_pipeline)
 
-class TestCommand(ClickCommandMetadata):
-    command_name: str = "test"
-    command_help: str = "Tests aircmd"
 
 @core_group.command(CICommand())
 @pass_pipeline_context
 async def ci(ctx: PipelineContext) -> None:
-    ci_client = (await ctx.get_dagger_client()).pipeline("ci")
-    build_pipeline_client = ci_client.pipeline("build")
-    build_result = await build_task(client=build_pipeline_client)
+    top_level_client = await ctx.get_dagger_client()
 
-    test_pipeline_client = ci_client.pipeline("test")
-    await test_task(build_result=build_result, client=test_pipeline_client)
+    ci_pipeline = Pipeline("ci", steps=[], client=top_level_client)
+    build_pipeline = Pipeline("build", steps=[build_task], client=ci_pipeline.client.pipeline("build"))
+    test_pipeline = Pipeline("test", steps=[test_task], client=ci_pipeline.client.pipeline("test"))
+    ci_pipeline.steps = [build_pipeline, test_pipeline]
+
+    await ctx.execute_pipeline(ci_pipeline)  
     """Run CI for aircmd"""                                                                                               

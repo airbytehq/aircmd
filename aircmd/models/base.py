@@ -1,7 +1,6 @@
-import logging
 import platform
 import sys
-from typing import Any, Callable, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import anyio
 import dagger
@@ -77,55 +76,30 @@ class GlobalSettings(BaseSettings, Singleton):
 class PipelineResult(BaseModel):
     id: Optional[str] = None
     status: str
-    data: Any
+    data: dagger.Container
 
-class Pipeline(BaseModel):
-    name: str
-    dagger_client: dagger.Client
-    steps: List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline', List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline']]]] = []
-    callback: Optional[Callable[..., Any]] = None
     class Config:
         arbitrary_types_allowed=True
 
-    @classmethod
-    async def create(cls, name: str, parent_client: Optional[dagger.Client] = None, steps: List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline', List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline']]]] = [], callback: Optional[Callable[..., Any]] = None) -> 'Pipeline':
-        if parent_client:
-            # Use the dagger_client from the parent_client
-            dagger_client = parent_client.pipeline(name)
-        else:
-            # This is a top-level pipeline. Get the Dagger client from the current PipelineContext.
-            dagger_client = await PipelineContext().get_dagger_client()
-            dagger_client = dagger_client.pipeline(name)
+class Pipeline(BaseModel):
+    name: str
+    steps: List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline', List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline']]]]
+    client: dagger.Client
 
-        return cls(name=name, dagger_client=dagger_client, steps=steps, callback=callback)
-        if parent_client:
-            # Use the dagger_client from the parent_client
-            dagger_client = parent_client.pipeline(name)
-        else:
-            # This is a top-level pipeline. Get the Dagger client from the current PipelineContext.
-            dagger_client = await PipelineContext().get_dagger_client()
-            dagger_client = dagger_client.pipeline(name)
+    def __init__(self, name: str, steps: Optional[List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline', List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline']]]]] = None, **data: Any):
+        if steps is None:
+            steps = []
+        super().__init__(name=name, steps=steps, **data)
+    class Config:
+        arbitrary_types_allowed=True
 
-        return cls(name=name, dagger_client=dagger_client)
 
-    async def run(self, previous_result: Optional[PipelineResult] = None, client: Optional[dagger.Client] = None) -> PipelineResult:                                     
-        result = previous_result 
-        for step in self.steps:                                                                                                                                         
-            if isinstance(step, Pipeline):                                                                                                                                 
-                result = await step.run(result, client)                                                                                                             
-            elif callable(step):                                                                                                                                           
-                result = await step(result, client)                                                                                                                 
-            elif isinstance(step, list):                                                                                                                                     
-                # Implement parallel execution logic here                                                                                                                    
-                pass                                                                                                                                                         
-        return result    
 
 class ConditionalPipeline(Pipeline):                                                                                                                                                                                                                                                                              
     run_condition: RunCondition    
 
-class PipelineContext(BaseModel, Singleton):
+class PipelineContext(BaseModel):
     _current_level: int = 0
-    logger: logging.Logger
     current_running_tasks: int = 0
     max_concurrency: int = 0
     max_concurrency_per_level: dict[int, int] = Field(default_factory=dict)
@@ -133,7 +107,27 @@ class PipelineContext(BaseModel, Singleton):
     _dagger_client: Optional[dagger.Client] = PrivateAttr(default=None)
     _click_context: Context = PrivateAttr(default_factory=get_current_context)
 
-                                                                                                                                                                                                                                                    
+    async def execute_pipeline(self, pipeline: Pipeline, results: Optional[Dict[str, PipelineResult]] = None) -> None:                                                                                                                                                                                                                                                                           
+     if results is None:                                                                                                                                                                                                                                                                                                                                                                      
+         results = {}                                                                                                                                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                                                                                                                                                              
+     for index, step in enumerate(pipeline.steps):                                                                                                                                                                                                                                                                                                                                            
+         if isinstance(step, list):                                                                                                                                                                                                                                                                                                                                                           
+             concurrent_results = await anyio.gather(*[self.execute_pipeline(child_pipeline, results) for child_pipeline in step])                                                                                                                                                                                                                                                            
+             results[pipeline.name] = PipelineResult(status="success", data=concurrent_results)                                                                                                                                                                                                                                                                                               
+         elif isinstance(step, Pipeline):                                                                                                                                                                                                                                                                                                                                                     
+             child_client = pipeline.client.pipeline(step.name) if pipeline.client else None                                                                                                                                                                                                                                                                                                  
+             child_pipeline = step.copy(update={"client": child_client})                                                                                                                                                                                                                                                                                                                      
+             if index > 0 and isinstance(pipeline.steps[index - 1], Pipeline):                                                                                                                                                                                                                                                                                                                
+                 previous_pipeline = pipeline.steps[index - 1]                                                                                                                                                                                                                                                                                                                                
+                 previous_result = results.get(previous_pipeline.name)                                                                                                                                                                                                                                                                                                                        
+                 child_pipeline.steps[0] = child_pipeline.steps[0], previous_result                                                                                                                                                                                                                                                                                                           
+             await self.execute_pipeline(child_pipeline, results)                                                                                                                                                                                                                                                                                                                             
+         else:                                                                                                                                                                                                                                                                                                                                                                                
+             task, previous_result = step if isinstance(step, tuple) else (step, results.get(pipeline.name))                                                                                                                                                                                                                                                                                  
+             result = await task(pipeline, previous_result)                                                                                                                                                                                                                                                                                                                                   
+             results[pipeline.name] = result                                                                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                        
 
     class Config:
         arbitrary_types_allowed=True
@@ -152,10 +146,6 @@ class PipelineContext(BaseModel, Singleton):
             current_level_concurrency = self.max_concurrency_per_level.get(level, 0) + delta
             self.max_concurrency_per_level[level] = max(self.max_concurrency_per_level.get(level, 0), current_level_concurrency)
             self.max_concurrency = max(self.max_concurrency_per_level.values())
-
-    def __init__(self, **data: Any):
-        logger = logging.getLogger("PipelineContext")
-        super().__init__(logger=logger, **data)
 
 # Mutaable. Store global application state here. Created at runtime
 
