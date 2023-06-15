@@ -236,6 +236,24 @@ def with_bound_docker_host(
         bound = bound.with_mounted_cache(*shared_volume)
     return bound
 
+def with_global_dockerd_service(dagger_client: Client, settings: GlobalSettings) -> Container:
+    """Create a container with a docker daemon running.
+    We expose its 2375 port to use it as a docker host for docker-in-docker use cases.
+    Args:
+        dagger_client (Client): The dagger client used to create the container.
+    Returns:
+        Container: The container running dockerd as a service
+    """
+    return (
+        dagger_client.container()
+        .from_(settings.DOCKER_DIND_IMAGE)
+        .with_mounted_cache(
+            "/tmp",
+            dagger_client.cache_volume("shared-tmp"),
+        )
+        .with_exposed_port(2375)
+        .with_exec(["dockerd", "--log-level=error", "--host=tcp://0.0.0.0:2375", "--tls=false"], insecure_root_capabilities=True)
+    )
 
 def with_docker_cli(
     client: Client, settings: GlobalSettings, shared_volume: Optional[Tuple[str, CacheVolume]] = None, docker_service_name: Optional[str] = None
