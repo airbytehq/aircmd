@@ -5,5 +5,12 @@
       "entry_point": "infra_runner.runner:infra_runner_plugin",
       "repository": "https://github.com/airbytehq/airbyte-infra.git",
       "authors": ["cpdeethree <conor@airbyte.io>"]
+  },
+  "cloud_ci": {
+      "version": "0.0.1",
+      "description": "Plugin to build internal cloud CI",
+      "entry_point": "cloud.ci:cloud_ci",
+      "repository": "https://github.com/airbytehq/airbyte-platform-internal.git",
+      "authors": ["cpdeethree <conor@airbyte.io>"]
   }
 }
