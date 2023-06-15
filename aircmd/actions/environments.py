@@ -14,7 +14,7 @@ import dagger
 from dagger import (CacheSharingMode, CacheVolume, Client, Container,
                     Directory, File)
 
-from ..models.base import GlobalSettings
+from ..models.base import GlobalSettings, PipelineContext
 from .constants import CRANE_DEBUG_IMAGE, PYTHON_IMAGE
 from .pipelines import get_file_contents, get_repo_dir
 from .strings import slugify
@@ -209,32 +209,26 @@ def with_dockerd_service(
 
 
 def with_bound_docker_host(
+    context: PipelineContext,
     client: Client,
-    settings: GlobalSettings,
     container: Container,
-    shared_volume: Optional[Tuple[str, CacheVolume]] = None,
-    docker_service_name: Optional[str] = None,
 ) -> Container:
     """Bind a container to a docker host. It will use the dockerd service as a docker host.
 
     Args:
-        context (Pipeline): The current connector context.
+        context (ConnectorContext): The current connector context.
         container (Container): The container to bind to the docker host.
-        shared_volume (Optional, optional): A tuple in the form of (mounted path, cache volume) that will be both mounted to the container and the dockerd container. Defaults to None.
-        docker_service_name (Optional[str], optional): The name of the docker service, useful context isolation. Defaults to None.
-
     Returns:
         Container: The container bound to the docker host.
     """
-    dockerd = with_dockerd_service(client, settings, shared_volume, docker_service_name)
-    docker_lib_volume_name = f"{shared_volume[0]}-docker-lib" if shared_volume is not None else "docker-lib"
-    docker_hostname = docker_lib_volume_name
-    if docker_service_name:
-        docker_hostname = f"{docker_hostname}-{slugify(docker_service_name)}"
-    bound = container.with_env_variable("DOCKER_HOST", f"tcp://{docker_hostname}:2375").with_service_binding(docker_hostname, dockerd)
-    if shared_volume:
-        bound = bound.with_mounted_cache(*shared_volume)
-    return bound
+    dockerd = context.dockerd_service
+    docker_hostname = "global-docker-host"
+    return (
+        container.with_env_variable("DOCKER_HOST", f"tcp://{docker_hostname}:2375")
+        .with_service_binding(docker_hostname, dockerd)
+        .with_mounted_cache("/tmp", client.cache_volume("shared-tmp"))
+    )
+
 
 def with_global_dockerd_service(dagger_client: Client, settings: GlobalSettings) -> Container:
     """Create a container with a docker daemon running.
@@ -255,29 +249,25 @@ def with_global_dockerd_service(dagger_client: Client, settings: GlobalSettings)
         .with_exec(["dockerd", "--log-level=error", "--host=tcp://0.0.0.0:2375", "--tls=false"], insecure_root_capabilities=True)
     )
 
-def with_docker_cli(
-    client: Client, settings: GlobalSettings, shared_volume: Optional[Tuple[str, CacheVolume]] = None, docker_service_name: Optional[str] = None
-) -> Container:
+def with_docker_cli(context: PipelineContext, settings: GlobalSettings, client: Client) -> Container:
     """Create a container with the docker CLI installed and bound to a persistent docker host.
 
     Args:
-        context (Pipeline): The current pipeline context.
-        shared_volume (Optional, optional): A tuple in the form of (mounted path, cache volume) that will be both mounted to the container and the dockerd container. Defaults to None.
-        docker_service_name (Optional[str], optional): The name of the docker service, useful context isolation. Defaults to None.
+        context (ConnectorContext): The current connector context.
 
     Returns:
         Container: A docker cli container bound to a docker host.
     """
     docker_cli = client.container().from_(settings.DOCKER_CLI_IMAGE)
-    return with_bound_docker_host(client, settings, docker_cli, shared_volume, docker_service_name)
+    return with_bound_docker_host(context, client, docker_cli)
 
 
 def with_gradle(
     client: Client,
+    context: PipelineContext,
     settings: GlobalSettings,
     sources_to_include: Optional[List[str]] = None,
     bind_to_docker_host: bool = True,
-    docker_service_name: Optional[str] = "gradle",
 ) -> Container:
     """Create a container with Gradle installed and bound to a persistent docker host.
 
@@ -316,7 +306,7 @@ def with_gradle(
     gradle_dependency_cache: CacheVolume = client.cache_volume("gradle-dependencies-caching")
     gradle_build_cache: CacheVolume = client.cache_volume("gradle-build-cache")
 
-    shared_tmp_volume = ("/tmp", client.cache_volume("share-tmp-gradle"))
+    ("/tmp", client.cache_volume("share-tmp-gradle"))
 
     openjdk_with_docker = (
         client.container()
@@ -336,27 +326,30 @@ def with_gradle(
     )
 
     if bind_to_docker_host:
-        return with_bound_docker_host(client, settings, openjdk_with_docker, shared_tmp_volume, docker_service_name=docker_service_name)
+        return with_bound_docker_host(context, client, openjdk_with_docker)
     else:
         return openjdk_with_docker
 
 
-async def load_image_to_docker_host(client: Client, 
-                                    settings: GlobalSettings,
-                                    tar_file: File, 
-                                    image_tag: str, 
-                                    docker_service_name: Optional[str] = None) -> None:
+async def load_image_to_docker_host(context: PipelineContext, settings: GlobalSettings, client: Client, tar_file: File, image_tag: str) -> None:
     """Load a docker image tar archive to the docker host.
 
     Args:
-        context (Pipeline): The current connector context.
+        context (ConnectorContext): The current connector context.
         tar_file (File): The file object holding the docker image tar archive.
         image_tag (str): The tag to create on the image if it has no tag.
-        docker_service_name (str): Name of the docker service, useful for context isolation.
     """
     # Hacky way to make sure the image is always loaded
     tar_name = f"{str(uuid.uuid4())}.tar"
-    docker_cli = with_docker_cli(client, settings, docker_service_name=docker_service_name).with_mounted_file(tar_name, tar_file)
+    docker_cli = with_docker_cli(context, settings, client).with_mounted_file(tar_name, tar_file)
+
+    image_load_output = await docker_cli.with_exec(["docker", "load", "--input", tar_name]).stdout()
+    print(image_load_output)
+    # Not tagged images only have a sha256 id the load output shares.
+    if "sha256:" in image_load_output:
+        image_id = image_load_output.replace("\n", "").replace("Loaded image ID: sha256:", "")
+        docker_tag_output = await docker_cli.with_exec(["docker", "tag", image_id, image_tag]).stdout()
+        print(docker_tag_output)
 
     # Remove a previously existing image with the same tag if any.
     try:
