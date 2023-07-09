@@ -1,0 +1,58 @@
+### DO NOT ADD GITHUB ACTIONS TO THIS FILE ###
+### PIPELINE LOGIC LIVES IN CI FOLDER ###
+
+name: "Dagger CI"
+
+env:
+  GCLOUD_GITHUB_ACTIONS_SERVICE_ACCOUNT_JSON: "${{ secrets.GCLOUD_GITHUB_ACTIONS_SERVICE_ACCOUNT_JSON }}"
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+    paths-ignore:
+      - 'README.md'
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+jobs:
+  aircmd_ci:
+    name: Dagger CI
+    timeout-minutes: 60
+    runs-on: platform-xlarge-runner
+    steps:
+      - name: Login to DockerHub
+        run: "docker login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD}"
+        env: #TODO: Don't use GHA secrets for this
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      - name: Checkout aircmd
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.inputs.repo }}
+          ref: ${{ github.event.inputs.gitref }}
+      #TODO: Use python baked into the runner, currently this is on 3.8.10
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+      - name: Run Dagger
+        run: |
+          export _EXPERIMENTAL_DAGGER_CLOUD_TOKEN="p.eyJ1IjogIjFiZjEwMmRjLWYyZmQtNDVhNi1iNzM1LTgxNzI1NGFkZDU2ZiIsICJpZCI6ICJlNjk3YzZiYy0yMDhiLTRlMTktODBjZC0yNjIyNGI3ZDBjMDEifQ.hT6eMOYt3KZgNoVGNYI3_v4CC-s19z8uQsBkGrBhU3k"
+          export _EXPERIMENTAL_DAGGER_RUNNER_HOST="unix:///var/run/buildkit/buildkitd.sock"
+          DAGGER_CLI_COMMIT="6ed6264f1c4efbf84d310a104b57ef1bc57d57b0"
+          DAGGER_TMP_BINDIR="/tmp/dagger_${DAGGER_CLI_COMMIT}"
+          export _EXPERIMENTAL_DAGGER_CLI_BIN="$DAGGER_TMP_BINDIR/dagger"
+          if [ ! -f  "$_EXPERIMENTAL_DAGGER_CLI_BIN" ]; then
+            mkdir -p "$DAGGER_TMP_BINDIR"
+            curl "https://dl.dagger.io/dagger/main/${DAGGER_CLI_COMMIT}/dagger_${DAGGER_CLI_COMMIT}_$(uname -s | tr A-Z a-z)_$(uname -m | sed s/x86_64/amd64/).tar.gz" | tar xvz -C "$DAGGER_TMP_BINDIR"
+          fi
+          poetry install
+          poetry run aircmd core ci
+      
