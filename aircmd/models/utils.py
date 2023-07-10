@@ -2,31 +2,14 @@ from functools import wraps
 from inspect import signature
 from typing import Any, Callable, List, Optional
 
+import pygit2
 from asyncclick import Argument, Command, Group, Option, Parameter
-from pydantic import BaseModel
+from dagger import Container
 
+from ..models.base import GlobalSettings, RunCondition
 from ..models.click_commands import TYPE_MAPPING, ClickCommand, ClickGroup
-from ..models.click_params import (ClickArgument, ClickFlag, ClickOption,
-                                   ClickParam)
+from ..models.click_params import ClickArgument, ClickFlag, ClickOption, ClickParam
 
-
-class RunCondition(BaseModel):
-    condition_type: str
-    condition_value: Optional[str] = None
-
-    def check_condition(self, results: List) -> bool:
-        for result in results:
-            if self.condition_value is not None and result.get("id") != self.condition_value:
-                continue
-
-            if self.condition_type == "onFail" and result.get("status") == "failed":
-                return True
-            elif self.condition_type == "onPass" and result.get("status") == "passed":
-                return True
-            elif self.condition_type == "onSkip" and result.get("status") == "skipped":
-                return True
-
-        return False
 
 def onFail(id: Optional[str] = None) -> RunCondition:
     return RunCondition(condition_type="onFail", condition_value=id)
@@ -147,6 +130,39 @@ def make_pass_decorator(object_type: Any, ensure: bool=False) -> Callable[..., A
             raise RuntimeError(f"Function {f.__name__} does not accept an argument of type {object_type}.")
     return decorator
 
+
+def get_git_revision() -> str:
+    repo = pygit2.Repository(".")
+    commit_hash = repo.revparse_single("HEAD").short_id
+    return commit_hash
+'''
+If both include and exclude are supplied, the load_settings function will first filter the environment variables based on the include list, and then it will    
+further filter the resulting environment variables based on the exclude list.                                                                                   
+
+Here's the order of operations:                                                                                                                                 
+
+ 1 If include is provided, only the environment variables with keys in the include list will be considered.                                                     
+ 2 If exclude is provided, any environment variables with keys in the exclude list will be removed from the filtered list obtained in step 1.                   
+ 3 The remaining environment variables will be loaded into the container.   
+'''                                                                                                             
+                                                                                                                                                                
+def load_settings(settings: GlobalSettings, include: Optional[List[str]] = None, exclude: Optional[List[str]] = None) -> Callable[[Container], Container]:     
+    def load_envs(ctr: Container) -> Container:                                                                                                                
+        settings_dict = {key: value for key, value in settings.dict().items() if value is not None}                                                            
+                                                                                                                                                            
+        if include is not None:                                                                                                                                
+            settings_dict = {key: settings_dict[key] for key in include if key in settings_dict}                                                               
+                                                                                                                                                            
+        if exclude is not None:                                                                                                                                
+            settings_dict = {key: value for key, value in settings_dict.items() if key not in exclude}                                                         
+                                                                                                                                                            
+        for key, value in settings_dict.items():
+            env_key = key.upper()
+            ctr = ctr.with_env_variable(env_key, str(value))
+                                                                                                                                                            
+        return ctr                                                                                                                                             
+                                                                                                                                                        
+    return load_envs     
 
 
 

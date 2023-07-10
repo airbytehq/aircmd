@@ -10,7 +10,25 @@ from pydantic import BaseModel, Field, PrivateAttr
 from pydantic_settings import BaseSettings
 
 from ..plugin_manager import PluginManager
-from .utils import RunCondition
+
+
+class RunCondition(BaseModel):
+    condition_type: str
+    condition_value: Optional[str] = None
+
+    def check_condition(self, results: List) -> bool:
+        for result in results:
+            if self.condition_value is not None and result.get("id") != self.condition_value:
+                continue
+
+            if self.condition_type == "onFail" and result.get("status") == "failed":
+                return True
+            elif self.condition_type == "onPass" and result.get("status") == "passed":
+                return True
+            elif self.condition_type == "onSkip" and result.get("status") == "skipped":
+                return True
+
+        return False
 
 
 class Singleton:
@@ -107,6 +125,10 @@ class PipelineContext(BaseModel, Singleton):
     dockerd_service: Optional[dagger.Container] = Field(default=None)
     _dagger_client: Optional[dagger.Client] = PrivateAttr(default=None)
     _click_context: Context = PrivateAttr(default_factory=get_current_context)
+
+    def create_pipeline(self, name: str, steps: List[Callable], dagger_client: dagger.Client) -> Pipeline:
+        client = dagger_client.pipeline(name)
+        return Pipeline(name, steps=steps, client=client)
 
     async def execute_pipeline(self, pipeline: Pipeline, results: Optional[Dict[str, List[PipelineResult]]] = None, previous_result: Optional[PipelineResult] = None) -> PipelineResult:                                                                                                                                                                                                                                                                           
      if results is None:                                                                                                                                                                                                                                                                                                                                                                      
