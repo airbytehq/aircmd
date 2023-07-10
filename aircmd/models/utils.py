@@ -1,17 +1,15 @@
 from functools import wraps
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 import pygit2
 from asyncclick import Argument, Command, Group, Option, Parameter
 from dagger import Container
 from pydantic import BaseModel
 
+from ..models.base import GlobalSettings
 from ..models.click_commands import TYPE_MAPPING, ClickCommand, ClickGroup
 from ..models.click_params import ClickArgument, ClickFlag, ClickOption, ClickParam
-
-if TYPE_CHECKING:
-    from ..models.base import GlobalSettings
 
 
 class RunCondition(BaseModel):
