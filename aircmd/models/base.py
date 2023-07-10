@@ -108,6 +108,10 @@ class PipelineContext(BaseModel, Singleton):
     _dagger_client: Optional[dagger.Client] = PrivateAttr(default=None)
     _click_context: Context = PrivateAttr(default_factory=get_current_context)
 
+    def create_pipeline(name: str, steps: List[Callable], dagger_client: dagger.Client) -> Pipeline:
+        client = dagger_client.pipeline(name)
+        return Pipeline(name, steps=steps, client=client)
+
     async def execute_pipeline(self, pipeline: Pipeline, results: Optional[Dict[str, List[PipelineResult]]] = None, previous_result: Optional[PipelineResult] = None) -> PipelineResult:                                                                                                                                                                                                                                                                           
      if results is None:                                                                                                                                                                                                                                                                                                                                                                      
          results = {}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
