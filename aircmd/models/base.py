@@ -1,6 +1,6 @@
 import platform
 import sys
-from typing import Any, Callable, List, Optional, Type, Union
+from typing import Any, Callable, List, Optional, Type
 
 import dagger
 import platformdirs
@@ -65,27 +65,6 @@ class GlobalSettings(BaseSettings, Singleton):
     class Config:                                                                                                                                                        
          arbitrary_types_allowed = True                                                                                                                                   
          env_file = '.env' 
-
-
-class PipelineResult(BaseModel):
-    id: Optional[str] = None
-    status: str
-    data: Any
-    class Config:
-        arbitrary_types_allowed=True
-
-class Pipeline(BaseModel):
-    name: str
-    steps: List[Union['Pipeline', Callable[..., Any], List[Union['Pipeline', Callable[..., Any],]]]]
-    client: dagger.Client
-
-    def __init__(self, name: str, steps: Optional[List[Union['Pipeline', Callable[..., Any], List[Union['Pipeline', Callable[..., Any],]]]]] = None, **data: Any):
-        if steps is None:
-            steps = []
-        super().__init__(name=name, steps=steps, **data)
-    class Config:
-        arbitrary_types_allowed=True
-
 
 # this is a bit of a hack to get around how prefect resolves parameters
 # basically without this, prefect will attempt to access the context
