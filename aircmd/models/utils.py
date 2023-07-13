@@ -1,25 +1,15 @@
 from functools import wraps
 from inspect import signature
-from typing import Any, Callable, List, Optional
+from typing import Any, Awaitable, Callable, List, Optional
 
 import pygit2
 from asyncclick import Argument, Command, Group, Option, Parameter
 from dagger import Container
+from prefect.futures import PrefectFuture
 
-from ..models.base import GlobalSettings, RunCondition
+from ..models.base import GlobalSettings
 from ..models.click_commands import TYPE_MAPPING, ClickCommand, ClickGroup
 from ..models.click_params import ClickArgument, ClickFlag, ClickOption, ClickParam
-
-
-def onFail(id: Optional[str] = None) -> RunCondition:
-    return RunCondition(condition_type="onFail", condition_value=id)
-
-def onPass(id: Optional[str] = None) -> RunCondition:
-    return RunCondition(condition_type="onPass", condition_value=id)
-
-def onSkip(id: Optional[str] = None) -> RunCondition:
-    return RunCondition(condition_type="onSkip", condition_value=id)
-
 
 
 def add_parameter(params: List[Parameter], parameter_model: ClickParam) -> None:
@@ -92,6 +82,12 @@ def map_pyd_grp_to_click_group(group_model: ClickGroup) -> Group:
 
     return click_group
 
+# helper function to unwrap the layers of futures 
+async def resolve(awaitable_future: Awaitable[PrefectFuture[Container, Any]]) -> Container:                                                                                                                                                                                                                                                                                    
+    future = await awaitable_future # Unwrap the awaitable       
+    container = await future.result()  # Get the Container from the Future    
+    container.sync()                                                                                                                                                                                                                   
+    return container # Get the final result from the Container  
 
 
 def make_pass_decorator(object_type: Any, ensure: bool=False) -> Callable[..., Any]:
@@ -114,7 +110,6 @@ def make_pass_decorator(object_type: Any, ensure: bool=False) -> Callable[..., A
                         ctx = object_type()
                     else:
                         raise RuntimeError(f"No object of type {object_type} found.")
-                
                 # If function has **kwargs, we can put the context there
                 if params.get('kwargs', None) is not None and 'kwargs' not in kwargs:
                     kwargs['kwargs'] = ctx

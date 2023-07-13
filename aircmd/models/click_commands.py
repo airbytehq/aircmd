@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from asyncclick import ClickException, Command, Group
-from pydantic import BaseModel, ValidationError, field_validator
+from pydantic import BaseModel, ValidationError
 
 from .click_params import ClickArgument, ClickFlag, ClickOption
 
@@ -21,13 +21,13 @@ class ClickCommandMetadata(BaseModel):
     command_name: str
     command_help: str
 
-    @field_validator('command_name')
+    #@field_validator('command_name')
     def validate_command_name(cls, v: str) -> str:
         if not v or not v.islower() or not v.isalnum() or len(v) > 20:
             raise ValueError("Command name must be all lowercase, contain no special characters, and not exceed 20 characters in length.")
         return v
 
-    @field_validator('command_help')
+    #@field_validator('command_help')
     def validate_command_help(cls, v: str) -> str:
         if not v or len(v) > 100:
             raise ValueError("Command help cannot be empty and must not exceed 100 characters in length.")
@@ -53,7 +53,7 @@ class ClickGroupMetadata(BaseModel):
     group_name: Optional[str] = None
     group_help: str
 
-    @field_validator('group_name')
+    #@field_validator('group_name')
     def validate_group_name(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return v
@@ -67,7 +67,7 @@ class ClickGroupMetadata(BaseModel):
             raise ValueError("Group name must not exceed 20 characters in length")
         return v
 
-    @field_validator('group_help')
+    #@field_validator('group_help')
     def validate_group_help(cls, v: str) -> str:
         if len(v) > 100:
             raise ValueError("Group help must not exceed 100 characters in length.")
@@ -94,7 +94,7 @@ class ClickGroup(ClickGroupMetadata):
         # Click needs to know about the command before it is invoked
         # so we create a command instance that describes the command
         # including the name, but without the actual runtime arguments
-        command_instance = ClickCommand(**command_metadata.model_dump())
+        command_instance = ClickCommand(**command_metadata.dict())
         self.commands[command_instance.command_name] = command_instance  # Update commands dict immediately
 
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -107,11 +107,14 @@ class ClickGroup(ClickGroupMetadata):
                 kwargs.pop("global_option", None)
                 try:
                     # Validate command instance against actual function arguments
-                    command_instance = ClickCommand(**{**command_metadata.model_dump(), **kwargs})
+                    command_instance = ClickCommand(**{**command_metadata.dict(), **kwargs})
                     self.commands[command_instance.command_name] = command_instance
                 except ValidationError as err:
                     raise ClickException(str(err))
-                return command_instance.command_func(*args, **kwargs)
+                # handle the case where we invoke the command from python, not through click
+                if command_instance.command_func is None:                                                                                                                                                                                                                                                                                                                                                                             
+                    command_instance.command_func = func                                                                                                                                                                                                                                                                                                                                                                             
+                return command_instance.command_func(*args, **kwargs)  
 
             return wrapper
         return decorator
@@ -134,9 +137,11 @@ class ClickGroup(ClickGroupMetadata):
     
     @property
     def click_group(self) -> Group:
-        from .utils import (map_pyd_cmd_to_click_command,
-                            map_pyd_grp_to_click_group,
-                            map_pyd_opt_to_click_option)
+        from .utils import (
+            map_pyd_cmd_to_click_command,
+            map_pyd_grp_to_click_group,
+            map_pyd_opt_to_click_option,
+        )
         click_group = Group(name=self.group_name)
         for command_model in self.commands.values():
             click_command = map_pyd_cmd_to_click_command(command_model)

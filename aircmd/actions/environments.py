@@ -11,8 +11,8 @@ import uuid
 from typing import List, Optional, Tuple
 
 import dagger
-from dagger import (CacheSharingMode, CacheVolume, Client, Container,
-                    Directory, File)
+from dagger import CacheVolume, Client, Container, Directory, File
+from dagger.api.gen_sync import CacheSharingMode
 
 from ..models.base import GlobalSettings, PipelineContext
 from .constants import CRANE_DEBUG_IMAGE, PYTHON_IMAGE
