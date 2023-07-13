@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import sys
+import traceback
+import tracemalloc
 
 import anyio
 from asyncclick import Context
@@ -49,33 +51,38 @@ cli = ClickGroup(group_name=None, group_help="Aircmd: A CLI for Airbyte")
 cli.add_group(plugin_group)  # commands to manage plugins
 cli.add_group(core_group)  # commands to manage building, testing, and publishing aircmd
 
-# Store the current Click context in the GlobalContext object as a private attribute
-gctx._click_context = Context(cli.click_group)
-
-def main() -> None:
+def main():
     anyio.run(async_main)
 
 async def async_main() -> None:
-    # only show the banner when running `aircmd` with no arguments
-    if len(sys.argv) == 1:
-        display_welcome_message()
+    try:
+        # Store the current Click context in the GlobalContext object as a private attribute
+        gctx.click_context = Context(cli.click_group)
+        # only show the banner when running `aircmd` with no arguments
+        if len(sys.argv) == 1:
+            display_welcome_message()
 
-    # Load plugin manager from the global context
-    plugin_manager = gctx.plugin_manager
+        # Load plugin manager from the global context
+        plugin_manager = gctx.plugin_manager
 
-    # Get the command groups from the plugins
-    plugin_command_groups = plugin_manager.get_command_groups()
+        # Get the command groups from the plugins
+        plugin_command_groups = plugin_manager.get_command_groups()
 
-    # Add each plugin command group to the top level cli
-    for plugin_command_group in plugin_command_groups:
-        cli.add_group(plugin_command_group)
+        # Add each plugin command group to the top level cli
+        for plugin_command_group in plugin_command_groups:
+            cli.add_group(plugin_command_group)
 
-    # Run the cli via its click entrypoint to parse arguments and delegate to the correct commands
-    await cli.click_group.main()
+        # Run the cli via its click entrypoint to parse arguments and delegate to the correct commands
+        tracemalloc.start()
+
+        await cli.click_group.main()
+    except RuntimeWarning as e:                                                                                                                                                                                                                                                                               
+         print(f"Caught a RuntimeWarning: {e}")                                                                                                                                                                                                                                                                
+         traceback.print_exc()
 
 
 if __name__ == "__main__":
-    anyio.run(async_main)
+    main()
 
 
 

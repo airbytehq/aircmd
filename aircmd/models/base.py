@@ -1,34 +1,13 @@
 import platform
 import sys
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, List, Optional, Type
 
-import anyio
 import dagger
 import platformdirs
 from asyncclick import Context, get_current_context
-from pydantic import BaseModel, Field, PrivateAttr
-from pydantic_settings import BaseSettings
+from pydantic import BaseModel, BaseSettings, Field, PrivateAttr
 
 from ..plugin_manager import PluginManager
-
-
-class RunCondition(BaseModel):
-    condition_type: str
-    condition_value: Optional[str] = None
-
-    def check_condition(self, results: List) -> bool:
-        for result in results:
-            if self.condition_value is not None and result.get("id") != self.condition_value:
-                continue
-
-            if self.condition_type == "onFail" and result.get("status") == "failed":
-                return True
-            elif self.condition_type == "onPass" and result.get("status") == "passed":
-                return True
-            elif self.condition_type == "onSkip" and result.get("status") == "skipped":
-                return True
-
-        return False
 
 
 class Singleton:
@@ -87,104 +66,37 @@ class GlobalSettings(BaseSettings, Singleton):
          arbitrary_types_allowed = True                                                                                                                                   
          env_file = '.env' 
 
-
-
-
-
-class PipelineResult(BaseModel):
-    id: Optional[str] = None
-    status: str
-    data: dagger.Container
-
-    class Config:
-        arbitrary_types_allowed=True
-
-class Pipeline(BaseModel):
-    name: str
-    steps: List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline', List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline']]]]
-    client: dagger.Client
-
-    def __init__(self, name: str, steps: Optional[List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline', List[Union['Pipeline', Callable[..., Any], 'ConditionalPipeline']]]]] = None, **data: Any):
-        if steps is None:
-            steps = []
-        super().__init__(name=name, steps=steps, **data)
-    class Config:
-        arbitrary_types_allowed=True
-
-
-
-class ConditionalPipeline(Pipeline):                                                                                                                                                                                                                                                                              
-    run_condition: RunCondition    
+# this is a bit of a hack to get around how prefect resolves parameters
+# basically without this, prefect will attempt to access the context
+# before we create it in main.py in order to resolve it as a parameter
+# wrapping it in a function like this prevents that from happening
+def get_context():                                                                                                                                       
+    return get_current_context()   
 
 class PipelineContext(BaseModel, Singleton):
-    _current_level: int = 0
-    current_running_tasks: int = 0
-    max_concurrency: int = 0
-    max_concurrency_per_level: dict[int, int] = Field(default_factory=dict)
-    concurrency_lock: anyio.Lock = anyio.Lock()
     dockerd_service: Optional[dagger.Container] = Field(default=None)
     _dagger_client: Optional[dagger.Client] = PrivateAttr(default=None)
-    _click_context: Context = PrivateAttr(default_factory=get_current_context)
-
-    def create_pipeline(self, name: str, steps: List[Callable], dagger_client: dagger.Client) -> Pipeline:
-        client = dagger_client.pipeline(name)
-        return Pipeline(name, steps=steps, client=client)
-
-    async def execute_pipeline(self, pipeline: Pipeline, results: Optional[Dict[str, List[PipelineResult]]] = None, previous_result: Optional[PipelineResult] = None) -> PipelineResult:                                                                                                                                                                                                                                                                           
-     if results is None:                                                                                                                                                                                                                                                                                                                                                                      
-         results = {}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-     for index, step in enumerate(pipeline.steps):                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
-         if isinstance(step, Pipeline):                                                                                                                                                                                                                                                                                                                                                    
-            child_client = pipeline.client.pipeline(step.name) if pipeline.client else None                                                                                                                                                                                                                                                                                                  
-            child_pipeline = step.model_copy(update={"client": child_client})                                                                                                                                                                                                                                                                                                                      
-            if previous_result is not None:                                                                                                                                                                                                                                                                                                                        
-                child_pipeline.steps[0] = child_pipeline.steps[0], previous_result                                                                                                                                                                                                                                                                                                           
-            previous_result = await self.execute_pipeline(child_pipeline, results, previous_result)                                                                                                                                                                                                                                                                                                                             
-            if pipeline.name not in results:
-                results[pipeline.name] = []
-            results[pipeline.name].append(previous_result)
-         else:                                                                                                                                                                                                                                                                                                                                                                            
-            task, previous_result = step if isinstance(step, tuple) else (step, previous_result)                                                                                                                                                                                                                                                                                  
-            result = await task(pipeline, previous_result)                                                                                                                                                                                                                                                                                                                                   
-            if pipeline.name not in results:
-                results[pipeline.name] = []
-            results[pipeline.name].append(result)                                                                                                                                                                                                                                                                                                                          
-     return results[pipeline.name][-1] # return the last executed pipeline for passing into future ones                                                                                                                                                                                                                                                                                                                                
+    _click_context: Callable[[], Context] = PrivateAttr(default_factory=lambda: get_context)                                                                                                                                                                                                                                                                                                                  
                                                                                                                                                                                                                                                                         
-
     class Config:
         arbitrary_types_allowed=True
 
     
-    async def get_dagger_client(self) -> dagger.Client:
+    def get_dagger_client(self) -> dagger.Client:
         if not self._dagger_client:
             connection = dagger.Connection(dagger.Config(log_output=sys.stdout))
-            self._dagger_client = await self._click_context.with_async_resource(connection)  # type: ignore
+            self._dagger_client = self._click_context().with_resource(connection)  # type: ignore
         return self._dagger_client  # type: ignore
-
-
-    async def update_concurrency(self, delta: int, level: int) -> None:
-        async with self.concurrency_lock:
-            self.current_running_tasks += delta
-            current_level_concurrency = self.max_concurrency_per_level.get(level, 0) + delta
-            self.max_concurrency_per_level[level] = max(self.max_concurrency_per_level.get(level, 0), current_level_concurrency)
-            self.max_concurrency = max(self.max_concurrency_per_level.values())
-
-# Mutaable. Store global application state here. Created at runtime
 
 class GlobalContext(BaseModel, Singleton):
     plugin_manager: PluginManager
-    pipeline_context: Optional[PipelineContext] = None
-    _click_context: Optional[Context] = None
+    pipeline_context: Optional[PipelineContext] = Field(default=None)
+    click_context: Optional[Context] = Field(default=None)
 
     class Config:
         arbitrary_types_allowed = True
 
-    # This syntax is needed over the dataclass syntax for setting the default value
-    # because make_pass_decorator relies on the __init__ method
-    # to supply default values for the context object
-    # Otherwise, dataclass syntax is preferred
-    def __init__(self, plugin_manager: Optional[PluginManager] = None, **data: Any):
+    def __init__(self, plugin_manager: Optional[PluginManager] = None, _click_context: Optional[Context] = None, **data: Any):
         if plugin_manager is None:
             plugin_manager = PluginManager()
-        super().__init__(plugin_manager=plugin_manager, **data)
+        super().__init__(plugin_manager=plugin_manager, _click_context=_click_context, **data)
