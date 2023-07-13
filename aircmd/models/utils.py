@@ -1,11 +1,10 @@
 from functools import wraps
 from inspect import signature
-from typing import Any, Awaitable, Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 import pygit2
 from asyncclick import Argument, Command, Group, Option, Parameter
 from dagger import Container
-from prefect.futures import PrefectFuture
 
 from ..models.base import GlobalSettings
 from ..models.click_commands import TYPE_MAPPING, ClickCommand, ClickGroup
@@ -81,13 +80,6 @@ def map_pyd_grp_to_click_group(group_model: ClickGroup) -> Group:
         click_group.add_command(click_command)
 
     return click_group
-
-# helper function to unwrap the layers of futures 
-async def resolve(awaitable_future: Awaitable[PrefectFuture[Container, Any]]) -> Container:                                                                                                                                                                                                                                                                                    
-    future = await awaitable_future # Unwrap the awaitable       
-    container = await future.result()  # Get the Container from the Future    
-    container.sync()                                                                                                                                                                                                                   
-    return container # Get the final result from the Container  
 
 
 def make_pass_decorator(object_type: Any, ensure: bool=False) -> Callable[..., Any]:
