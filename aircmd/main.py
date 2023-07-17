@@ -72,6 +72,7 @@ async def async_main() -> None:
         for plugin_command_group in plugin_command_groups:
             cli.add_group(plugin_command_group)
 
+
         # Run the cli via its click entrypoint to parse arguments and delegate to the correct commands
         tracemalloc.start()
 

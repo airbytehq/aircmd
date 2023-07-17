@@ -272,6 +272,7 @@ def with_gradle(
     settings: GlobalSettings,
     sources_to_include: Optional[List[str]] = None,
     bind_to_docker_host: bool = True,
+    directory: Optional[str] = None,
 ) -> Container:
     """Create a container with Gradle installed and bound to a persistent docker host.
 
@@ -280,6 +281,7 @@ def with_gradle(
         sources_to_include (List[str], optional): List of additional source path to mount to the container. Defaults to None.
         bind_to_docker_host (bool): Whether to bind the gradle container to a docker host.
         docker_service_name (Optional[str], optional): The name of the docker service, useful context isolation. Defaults to "gradle".
+        directory: The directory to mount to the container. Defaults to "."
 
     Returns:
         Container: A container with Gradle installed and Java sources from the repository.
@@ -288,6 +290,7 @@ def with_gradle(
     include = [
         ".root",
         ".env",
+        ".env.dev",
         "build.gradle",
         "deps.toml",
         "gradle.properties",
@@ -307,7 +310,8 @@ def with_gradle(
     if sources_to_include:
         include += sources_to_include
 
-    gradle_dependency_cache: CacheVolume = client.cache_volume("gradle-dependencies-caching")
+    include = [directory + "/" + x for x in include] if directory else include
+    client.cache_volume("gradle-dependencies-caching")
     gradle_build_cache: CacheVolume = client.cache_volume("gradle-build-cache")
 
     ("/tmp", client.cache_volume("share-tmp-gradle"))
@@ -324,9 +328,9 @@ def with_gradle(
         .with_workdir("/airbyte")
         .with_mounted_directory("/airbyte", get_repo_dir(client, settings, ".", include=include))
         .with_exec(["mkdir", "-p", settings.GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH])
-        .with_mounted_cache(settings.GRADLE_BUILD_CACHE_PATH, gradle_build_cache, sharing=CacheSharingMode.LOCKED)
-        .with_mounted_cache(settings.GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH, gradle_dependency_cache)
-        .with_env_variable("GRADLE_RO_DEP_CACHE", settings.GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH)
+        .with_mounted_cache(settings.GRADLE_CACHE_PATH, gradle_build_cache, sharing=CacheSharingMode.LOCKED)
+        #.with_mounted_cache(settings.GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH, gradle_dependency_cache)
+        #.with_env_variable("GRADLE_RO_DEP_CACHE", settings.GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH)
     )
 
     if bind_to_docker_host:
