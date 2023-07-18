@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import dagger
 from dagger import CacheVolume, Client, Container, Directory, File
@@ -265,6 +265,24 @@ def with_docker_cli(context: PipelineContext, settings: GlobalSettings, client: 
     docker_cli = client.container().from_(settings.DOCKER_CLI_IMAGE)
     return with_bound_docker_host(context, client, docker_cli)
 
+def with_node(client: Client, node_version:str) -> Container:
+    
+    node = (
+                client.container()
+                .from_(f"node:{node_version}") # TODO: take this as an imput
+        )
+    return node
+
+def with_pnpm(client: Client, pnpm_version: str = "latest") -> Callable[[Container], Container]:
+    def pnpm(ctr: Container) -> Container:
+        pnpm_cache: CacheVolume = client.cache_volume("pnpm-cache")
+        ctr = (ctr.with_mounted_cache("/root/pnpm-cache", pnpm_cache)
+            .with_exec(["corepack", "enable"])
+            .with_exec(["corepack", "prepare", f"pnpm@{pnpm_version}", "--activate"]) # TODO: take this as an input
+            .with_exec(["pnpm", "config", "set", "store-dir", "/root/pnpm-cache"]))
+        return ctr
+    return pnpm
+
 
 def with_gradle(
     client: Client,
@@ -304,17 +322,15 @@ def with_gradle(
         "spotbugs-exclude-filter-file.xml",
         "buildSrc",
         "tools/bin/build_image.sh",
-        "tools/lib/lib.sh",
+        "tools/lib/lib.sh"
     ]
 
     if sources_to_include:
         include += sources_to_include
 
     include = [directory + "/" + x for x in include] if directory else include
-    client.cache_volume("gradle-dependencies-caching")
-    gradle_build_cache: CacheVolume = client.cache_volume("gradle-build-cache")
 
-    ("/tmp", client.cache_volume("share-tmp-gradle"))
+    gradle_cache: CacheVolume = client.cache_volume("gradle-cache")
 
     openjdk_with_docker = (
         client.container()
@@ -327,10 +343,9 @@ def with_gradle(
         .with_exec(["mkdir", "/airbyte"])
         .with_workdir("/airbyte")
         .with_mounted_directory("/airbyte", get_repo_dir(client, settings, ".", include=include))
-        .with_exec(["mkdir", "-p", settings.GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH])
-        .with_mounted_cache(settings.GRADLE_CACHE_PATH, gradle_build_cache, sharing=CacheSharingMode.LOCKED)
-        #.with_mounted_cache(settings.GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH, gradle_dependency_cache)
-        #.with_env_variable("GRADLE_RO_DEP_CACHE", settings.GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH)
+        .with_exec(["mkdir", "-p", "/root/.gradle"])
+        .with_mounted_cache("/root/gradle-cache", gradle_cache, sharing=CacheSharingMode.LOCKED)
+        .with_exec(["rsync", "-az", "/root/gradle-cache/", "/root/.gradle"])
     )
 
     if bind_to_docker_host:
