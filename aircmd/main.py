@@ -23,15 +23,6 @@ gctx = GlobalContext()
 # Create a Click context
 global_context = make_pass_decorator(GlobalContext, ensure=True)
 
-#logger = structlog.get_logger()
-# create a decorator with click to pass the global context to commands
-
-# Set up logging
-# TODO: Make this more configurable
-# Ideally we should have people able to configure this on 
-# a per-plugin or per-method or per-command basis
-# Running this method makes get_logger() return a structlog logger
-#setup_default_logging()
 
 
 def display_welcome_message() -> None:
@@ -58,6 +49,7 @@ async def async_main() -> None:
     try:
         # Store the current Click context in the GlobalContext object as a private attribute
         gctx.click_context = Context(cli.click_group)
+       
         # only show the banner when running `aircmd` with no arguments
         if len(sys.argv) == 1:
             display_welcome_message()
