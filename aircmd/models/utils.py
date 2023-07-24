@@ -152,11 +152,3 @@ def load_settings(settings: GlobalSettings, include: Optional[List[str]] = None,
     return load_envs     
 
 
-
-
-
-
-
-
-
-

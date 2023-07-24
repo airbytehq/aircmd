@@ -7,11 +7,10 @@ authors = ["cpdeethree <conor@airbyte.io>"]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-dagger-io = "^0.6.3"
+dagger-io = "^0.6.4"
 structlog = "^23.1.0"
 rich = "^13.3.5"
 pydantic = "^1.10"
-#pydantic-settings = { git = "https://github.com/pydantic/pydantic-settings.git", branch = "main" }
 requests = "^2.26.0"
 asyncclick = "^8.1.3.4"
 pygit2 = "^1.12.1"

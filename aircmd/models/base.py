@@ -54,6 +54,8 @@ class GlobalSettings(BaseSettings, Singleton):
     GRADLE_BUILD_CACHE_PATH: str = Field(f"{GRADLE_CACHE_PATH}/build-cache-1", env="GRADLE_BUILD_CACHE_PATH")
     GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH: str = Field("/root/gradle_dependency_cache", env="GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH")
 
+    PREFECT_API_URL: str = Field("http://127.0.0.1:4200/api", env="PREFECT_API_URL")
+
     SECRET_DOCKER_HUB_USERNAME: Optional[str] = Field(None, env="SECRET_DOCKER_HUB_USERNAME")
     SECRET_DOCKER_HUB_PASSWORD: Optional[str] = Field(None, env="SECRET_DOCKER_HUB_PASSWORD")
     
@@ -76,8 +78,8 @@ def get_context():
 class PipelineContext(BaseModel, Singleton):
     dockerd_service: Optional[dagger.Container] = Field(default=None)
     _dagger_client: Optional[dagger.Client] = PrivateAttr(default=None)
-    _click_context: Callable[[], Context] = PrivateAttr(default_factory=lambda: get_context)                                                                                                                                                                                                                                                                                                                  
-                                                                                                                                                                                                                                                                        
+    _click_context: Callable[[], Context] = PrivateAttr(default_factory=lambda: get_context)
+    
     class Config:
         arbitrary_types_allowed=True
 
