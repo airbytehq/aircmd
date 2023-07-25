@@ -1,10 +1,18 @@
 import platform
 import sys
-from typing import Any, Callable, List, Optional, Type
+from typing import Any, Callable, List, Optional, Type, Union
 
 import dagger
 import platformdirs
 from asyncclick import Context, get_current_context
+from prefect.context import (
+    FlowRunContext,
+    SettingsContext,
+    TagsContext,
+    TaskRunContext,
+    get_settings_context,
+    tags,
+)
 from pydantic import BaseModel, BaseSettings, Field, PrivateAttr
 
 from ..plugin_manager import PluginManager
@@ -55,6 +63,8 @@ class GlobalSettings(BaseSettings, Singleton):
     GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH: str = Field("/root/gradle_dependency_cache", env="GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH")
 
     PREFECT_API_URL: str = Field("http://127.0.0.1:4200/api", env="PREFECT_API_URL")
+    PREFECT_COMMA_DELIMITED_USER_TAGS: str = Field("", env="PREFECT_COMMA_DELIMITED_USER_TAGS")
+    PREFECT_COMMA_DELIMITED_SYSTEM_TAGS: str = Field("CI:False", env="PREFECT_COMMA_DELIMITED_SYSTEM_TAGS")
 
     SECRET_DOCKER_HUB_USERNAME: Optional[str] = Field(None, env="SECRET_DOCKER_HUB_USERNAME")
     SECRET_DOCKER_HUB_PASSWORD: Optional[str] = Field(None, env="SECRET_DOCKER_HUB_PASSWORD")
@@ -83,12 +93,40 @@ class PipelineContext(BaseModel, Singleton):
     class Config:
         arbitrary_types_allowed=True
 
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.set_global_prefect_tag_context()
     
     def get_dagger_client(self) -> dagger.Client:
         if not self._dagger_client:
             connection = dagger.Connection(dagger.Config(log_output=sys.stdout))
             self._dagger_client = self._click_context().with_resource(connection)  # type: ignore
         return self._dagger_client  # type: ignore
+    
+    def set_global_prefect_tag_context(self) -> Optional[TagsContext]:
+        if not TagsContext.get().current_tags:
+            system_tags = GlobalSettings().PREFECT_COMMA_DELIMITED_SYSTEM_TAGS.split(",")
+            user_tags = GlobalSettings().PREFECT_COMMA_DELIMITED_USER_TAGS.split(",")
+            all_tags = system_tags + user_tags
+            self._click_context().with_resource(tags(*all_tags))  # type: ignore
+        return None  # type: ignore
+    
+    @property
+    def prefect_tags_context(self) -> TagsContext:
+        return TagsContext.get()
+
+    @property
+    def prefect_settings_context(self) -> SettingsContext:
+        return get_settings_context()
+
+    @property
+    def prefect_flow_run_context(self) -> Union[FlowRunContext, None]:
+        return FlowRunContext.get()
+
+    @property
+    def prefect_task_run_context(self) -> Union[TaskRunContext, None]:
+        return TaskRunContext.get()
+
 
 class GlobalContext(BaseModel, Singleton):
     plugin_manager: PluginManager
