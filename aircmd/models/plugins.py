@@ -20,7 +20,6 @@ class Plugin(BaseModel, ABC):
     def add_group(self, group: ClickGroup) -> None:
         if group.group_name in self.groups:
             raise ValueError(f"A group with the name '{group.group_name}' already exists in this plugin.")
-        self.check_base_dir()
         self.groups[group.group_name] = group
 
 
@@ -33,10 +32,6 @@ class DeveloperPlugin(Plugin, ABC):
 
     def add_group(self, group: ClickGroup) -> None:
         super().add_group(group)
-
-    def check_base_dir(self) -> None:
-        if not any(os.getcwd().endswith(base_dir) for base_dir in self.base_dirs):
-            raise ValueError(f"Command must be executed from one of the base directories of the repository: {self.base_dirs}")
 
     def get_relative_path(self) -> str:
         for base_dir in self.base_dirs:
