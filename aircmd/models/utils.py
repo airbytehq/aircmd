@@ -73,11 +73,14 @@ def map_pyd_grp_to_click_group(group_model: ClickGroup) -> Group:
     """Create Click commands for each command in a group."""
     # Create a Click group
     click_group = Group(name=group_model.group_name)
-
     # Add commands to the group
     for command_model in group_model.commands.values():
         click_command = map_pyd_cmd_to_click_command(command_model)
         click_group.add_command(click_command)
+
+    for command_group in group_model.subgroups.values():
+        click_command_group = map_pyd_grp_to_click_group(command_group)
+        click_group.add_command(click_command_group)
 
     return click_group
 
