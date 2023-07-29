@@ -5,6 +5,7 @@ from typing import Any, Callable, List, Optional, Type, Union
 import dagger
 import platformdirs
 from asyncclick import Context, get_current_context
+from dagger.api.gen import Client, Container
 from prefect.context import (
     FlowRunContext,
     SettingsContext,
@@ -86,8 +87,8 @@ def get_context():
     return get_current_context()   
 
 class PipelineContext(BaseModel, Singleton):
-    dockerd_service: Optional[dagger.Container] = Field(default=None)
-    _dagger_client: Optional[dagger.Client] = PrivateAttr(default=None)
+    dockerd_service: Optional[Container] = Field(default=None)
+    _dagger_client: Optional[Client] = PrivateAttr(default=None)
     _click_context: Callable[[], Context] = PrivateAttr(default_factory=lambda: get_context)
     
     class Config:
@@ -97,10 +98,11 @@ class PipelineContext(BaseModel, Singleton):
         super().__init__(**data)
         self.set_global_prefect_tag_context()
     
-    def get_dagger_client(self) -> dagger.Client:
+    def get_dagger_client(self) -> Client:
         if not self._dagger_client:
+            print("Creating dagger client")
             connection = dagger.Connection(dagger.Config(log_output=sys.stdout))
-            self._dagger_client = self._click_context().with_resource(connection)  # type: ignore
+            self._dagger_client = self._click_context().with_async_resource(connection)  # type: ignore
         return self._dagger_client  # type: ignore
     
     def set_global_prefect_tag_context(self) -> Optional[TagsContext]:
