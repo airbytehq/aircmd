@@ -57,5 +57,5 @@ async def ci(ctx: PipelineContext, client: Optional[Client] = None) -> Awaitable
     return test_result
 
 
-core_ci_plugin = DeveloperPlugin(name = "infra_runner", base_dirs = ["airbyte-infra"])
+core_ci_plugin = DeveloperPlugin(name = "core_ci", base_dirs = ["aircmd"])
 core_ci_plugin.add_group(core_group)
