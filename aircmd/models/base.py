@@ -84,7 +84,7 @@ class GlobalSettings(BaseSettings, Singleton):
 # basically without this, prefect will attempt to access the context
 # before we create it in main.py in order to resolve it as a parameter
 # wrapping it in a function like this prevents that from happening
-def get_context():                                                                                                                                       
+def get_context() -> Context:                                                                                                                                       
     return get_current_context()   
 
 class PipelineContext(BaseModel, Singleton):
@@ -96,14 +96,14 @@ class PipelineContext(BaseModel, Singleton):
     class Config:
         arbitrary_types_allowed=True
 
-    def __init__(self, **data):
+    def __init__(self, **data: dict[str, Any]):
         super().__init__(**data)
         self.set_global_prefect_tag_context()
     
     async def get_dagger_client(self, client: Optional[Client] = None, pipeline_name: Optional[str] = None) -> Client:
         if not self._dagger_client:
             connection = dagger.Connection(dagger.Config(log_output=sys.stdout))
-            self._dagger_client = await self._click_context().with_async_resource(connection)  # Added 'await' here
+            self._dagger_client = await self._click_context().with_async_resource(connection) # type: ignore
         client = self._dagger_client
         assert client, "Error initializing Dagger client"
         return client.pipeline(pipeline_name) if pipeline_name else client
