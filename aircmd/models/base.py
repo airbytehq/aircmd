@@ -1,3 +1,4 @@
+import asyncio
 import platform
 import sys
 from typing import Any, Callable, List, Optional, Type, Union
@@ -90,7 +91,8 @@ class PipelineContext(BaseModel, Singleton):
     dockerd_service: Optional[Container] = Field(default=None)
     _dagger_client: Optional[Client] = PrivateAttr(default=None)
     _click_context: Callable[[], Context] = PrivateAttr(default_factory=lambda: get_context)
-    
+    _main_event_loop: asyncio.AbstractEventLoop = PrivateAttr(default_factory=asyncio.get_event_loop)
+
     class Config:
         arbitrary_types_allowed=True
 
@@ -98,12 +100,13 @@ class PipelineContext(BaseModel, Singleton):
         super().__init__(**data)
         self.set_global_prefect_tag_context()
     
-    def get_dagger_client(self) -> Client:
+    async def get_dagger_client(self, client: Optional[Client] = None, pipeline_name: Optional[str] = None) -> Client:
         if not self._dagger_client:
-            print("Creating dagger client")
             connection = dagger.Connection(dagger.Config(log_output=sys.stdout))
-            self._dagger_client = self._click_context().with_async_resource(connection)  # type: ignore
-        return self._dagger_client  # type: ignore
+            self._dagger_client = await self._click_context().with_async_resource(connection)  # Added 'await' here
+        client = self._dagger_client
+        assert client, "Error initializing Dagger client"
+        return client.pipeline(pipeline_name) if pipeline_name else client
     
     def set_global_prefect_tag_context(self) -> Optional[TagsContext]:
         if not TagsContext.get().current_tags:

@@ -8,14 +8,12 @@ import anyio
 from asyncclick import Context
 from dotenv import load_dotenv
 
-from .core.artifact import core_group
 from .core.plugins import plugin_group
 from .models.base import GlobalContext
 from .models.click_commands import ClickGroup
 from .models.utils import make_pass_decorator
 
 load_dotenv()
-
 
 # Create a global context
 gctx = GlobalContext()
@@ -40,16 +38,16 @@ cli = ClickGroup(group_name=None, group_help="Aircmd: A CLI for Airbyte")
 # Add core commands that live in `aircmd` itself (not plugins) to the top level entrypoint
 
 cli.add_group(plugin_group)  # commands to manage plugins
-cli.add_group(core_group)  # commands to manage building, testing, and publishing aircmd
 
-def main():
+def main() -> None:
     anyio.run(async_main)
 
 async def async_main() -> None:
     try:
+        
         # Store the current Click context in the GlobalContext object as a private attribute
         gctx.click_context = Context(cli.click_group)
-       
+
         # only show the banner when running `aircmd` with no arguments
         if len(sys.argv) == 1:
             display_welcome_message()

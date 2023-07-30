@@ -1,5 +1,6 @@
 
 
+import asyncio
 from typing import Awaitable, Optional
 
 from dagger import Client, Container
@@ -36,9 +37,9 @@ class CICommand(ClickCommandMetadata):
 @flow(validate_parameters=False)
 async def build(ctx: PipelineContext, client: Optional[Client] = None) ->  Awaitable[Container]:
     build_client = await ctx.get_dagger_client(client, BuildCommand().command_name)
-    build_result = build_task.submit(build_client)
-    res = await build_result
-    return res.result()
+    print("Current event loop in ci.py", id(asyncio.get_running_loop()))
+    build_future = await build_task.submit(build_client)
+    return build_future.result()
 
 @core_group.command(TestCommand())
 @pass_pipeline_context
@@ -46,10 +47,8 @@ async def build(ctx: PipelineContext, client: Optional[Client] = None) ->  Await
 async def test(ctx: PipelineContext, client: Optional[Client] = None) -> Awaitable[Container]:
     test_client = await ctx.get_dagger_client(client, TestCommand().command_name)
     build_result = await build()
-    res = await build_result
-    test_result = test_task.submit(test_client, res)
-    test_res = await test_result
-    return test_res.result()
+    test_future = await test_task.submit(test_client, build_result)
+    return test_future.result()
 
 @core_group.command(CICommand())
 @pass_pipeline_context

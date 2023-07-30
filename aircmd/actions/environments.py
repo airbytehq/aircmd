@@ -11,7 +11,7 @@ import uuid
 from typing import Callable, List, Optional, Tuple
 
 import dagger
-from dagger import CacheVolume, Client, Container, Directory, File, CacheSharingMode
+from dagger import CacheSharingMode, CacheVolume, Client, Container, Directory, File
 
 from ..models.base import GlobalSettings, PipelineContext
 from .constants import CRANE_DEBUG_IMAGE, PYTHON_IMAGE
@@ -407,9 +407,9 @@ def with_poetry(client: Client) -> Container:
     python_with_poetry = with_pip_packages(python_with_git, ["poetry"])
 
     poetry_cache: CacheVolume = client.cache_volume("poetry_cache")
-    python_with_poetry.with_mounted_cache("/root/.cache/pypoetry", poetry_cache, sharing=CacheSharingMode.SHARED)
+    python_with_poetry_cache = python_with_poetry.with_mounted_cache("/root/.cache/pypoetry", poetry_cache, sharing=CacheSharingMode.SHARED)
 
-    return python_with_poetry
+    return python_with_poetry_cache
 
 
 def with_poetry_module(client: Client, parent_dir: Directory, module_path: str) -> Container:
