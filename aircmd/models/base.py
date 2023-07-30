@@ -125,12 +125,18 @@ class PipelineContext(BaseModel, Singleton):
         return get_settings_context()
 
     @property
-    def prefect_flow_run_context(self) -> Union[FlowRunContext, None]:
-        return FlowRunContext.get()
+    def prefect_flow_run_context(self) -> FlowRunContext:
+        flow_run_context = FlowRunContext.get()
+        if flow_run_context is None:
+            raise ValueError("FlowRunContext is not available.")
+        return flow_run_context
 
     @property
     def prefect_task_run_context(self) -> Union[TaskRunContext, None]:
-        return TaskRunContext.get()
+        task_run_context = TaskRunContext.get()
+        if task_run_context is None:
+            raise ValueError("TaskRunContext is not available.")
+        return task_run_context
 
 
 class GlobalContext(BaseModel, Singleton):
