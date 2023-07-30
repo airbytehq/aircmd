@@ -12,5 +12,12 @@
       "entry_point": "cloud.ci:cloud_ci",
       "repository": "https://github.com/airbytehq/airbyte-platform-internal.git",
       "authors": ["cpdeethree <conor@airbyte.io>"]
-  }
+  },
+  "aircmd_ci": {
+    "version": "0.0.1",
+    "description": "Plugin to build aircmd CI",
+    "entry_point": "cloud.ci:cloud_ci",
+    "repository": "https://github.com/airbytehq/airbyte-platform-internal.git",
+    "authors": ["cpdeethree <conor@airbyte.io>"]
+}
 }

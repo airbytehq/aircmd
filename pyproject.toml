@@ -1,9 +1,12 @@
 [tool.poetry]
 name = "aircmd"
-version = "0.1.2"
+version = "0.1.3"
 description = "Airbyte CLI"
 authors = ["cpdeethree <conor@airbyte.io>"]
-
+packages = [
+    { include = "core", from = "ci" },
+    { include = "aircmd"},
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -26,6 +29,7 @@ ignore = ["E501"]
 
 [tool.poetry.scripts]
 aircmd = "aircmd.main:main"
+core = ""
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.0.262"
@@ -42,3 +46,6 @@ pytest = "^7.3.1"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+# Aircmd's own ci is of itself a plugin
+[tool.poetry.plugins."aircmd.plugins"]
+core_ci = "core.ci:core_ci_plugin"
