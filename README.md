@@ -2,6 +2,8 @@
 
 Aircmd is an extensible command line interface (CLI) that discovers and manages installable plugins to define commands related to developing and operating Airbyte. 
 
+Currently `aircmd` is used to run local CI for various pieces of Airbyte infrastructure via `plugins`.
+
 Aircmd makes use of Pydantic for data validation and Click for building the command line interface. You can use aircmd to discover and install plugins that perform various Airbyte related tasks
 
 ## Installation
@@ -13,16 +15,24 @@ $ pip install aircmd
 ```
 
 ```bash
+$ poetry shell
 $ aircmd
+```
+
+To run `aircmd` ci locally
+
+```bash
+$ aircmd plugin install core_ci --local .
+$ aircmd core ci
 ```
 
 ### Dependencies
 
-`aircmd` requires SOPS for secrets management and Docker for running pipelines
+`aircmd` requires an OCI runtime (Docker Desktop is an example) for running pipelines. Optionally, for visualization purposes for pipelines you can also install the [Dagger CLI](dagger.io)
 
 ### Local Development
 
-To install aircmd and work with it locally, first make sure you have Python 3.11 and Poetry installed. Then, clone the aircmd repository:
+To install aircmd and work with it locally, first make sure you have Python 3.11 and Poetry installed. Then, clone the `aircmd` repository:
 
 ```bash
 git clone https://github.com/airbytehq/aircmd.git
@@ -50,17 +60,6 @@ aircmd --help
 
 If you want to be able to run the aircmd command from anywhere without using poetry run, you'll need to modify your system's PATH environment variable to include the venv/bin directory of your project. For development you should avoid this, however, as it will conflict with the global production install of aircmd 
 
-## Configuring `aircmd` with secrets
-
-Configuration is done in the following order:
-
- 1 Load secrets using SOPS and store them in environment variables.                                                                                                   
- 2 Load environment variables from .env file using python-dotenv                                                                                                     
- 3 Use the GlobalSettings class that inherits from BaseSettings to automatically read the configuration from environment variables. This is an immutable singleton that is created as `aircmd` starts up
-
-
-To solve the chicken and egg problem (you need to have a secret to decrypt a secret), `aircmd` will use the existing gcloud configuration stored on the machine to attempt to decrypt secrets, or optionally can take in a service account JSON as input to perform this decryption instead
-
 ## Plugin Discovery
 
 Aircmd uses a plugin manager to discover plugins. To discover plugins, make sure they are installed in the Python environment that aircmd is running in. You can use the following command to see a list of installed plugins and installable plugins:
@@ -77,7 +76,12 @@ To install a plugin, you can use the following command:
 aircmd plugin install airbyte_oss
 ```
 
-This will install the `airbyte_oss` plugin and make its commands available in aircmd.
+This will install the `airbyte_oss` plugin that's defined in plugin_registry.json and make its commands available in aircmd. Optionally, you also have an option to install plugins locally from a directory that aren't defined in the plugin registry. Under the hood this is simply installing the package in editable mode in the virtual environment
+
+```bash
+$ aircmd plugin install core_ci --local .
+$ aircmd core ci
+```
 
 ## Uninstalling a Plugin
 
