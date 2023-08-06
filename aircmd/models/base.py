@@ -53,7 +53,7 @@ class PipelineContext(BaseModel, Singleton):
             user_tags = self.global_settings.PREFECT_COMMA_DELIMITED_USER_TAGS.split(",")
             all_tags = system_tags + user_tags
             self._click_context().with_resource(tags(*all_tags))  # type: ignore
-        return None  # type: ignore
+        return None 
     
     @property
     def prefect_tags_context(self) -> TagsContext:

@@ -12,8 +12,8 @@ async def build_task(client: Client) -> Container:
             .with_workdir("/src")
             .with_exec(["poetry", "install"])
             .with_mounted_cache("/src/.mypy_cache", mypy_cache)
-            #.with_exec(["poetry", "run", "mypy", "."])
-            #.with_exec(["poetry", "run", "ruff", "."])
+            .with_exec(["poetry", "run", "mypy", "."])
+            .with_exec(["poetry", "run", "ruff", "."])
             .with_exec(["poetry", "build"])
     )
     return result

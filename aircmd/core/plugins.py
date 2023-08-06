@@ -6,10 +6,11 @@ from typing import List, Optional
 
 import requests
 
-from ..models.base import GlobalContext, GlobalSettings
+from ..models.base import GlobalContext
 from ..models.click_commands import ClickCommandMetadata, ClickGroup
 from ..models.click_params import ClickArgument, ClickOption
-from ..models.utils import LazyPassDecorator
+from ..models.click_utils import LazyPassDecorator
+from ..models.settings import GlobalSettings
 
 plugin_group = ClickGroup(group_name="plugin", group_help="Commands for managing plugins")
 

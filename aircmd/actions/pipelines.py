@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from dagger import Client, Container, Directory, QueryError
 
-from ..models.base import GlobalSettings
+from ..models.settings import GlobalSettings
 
 
 def get_repo_dir(client: Client, settings: GlobalSettings, subdir: str = ".", exclude: Optional[List[str]] = None, include: Optional[List[str]] = None) -> Directory:

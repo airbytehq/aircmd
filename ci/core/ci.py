@@ -5,22 +5,17 @@ from typing import Optional
 from dagger import Client, Container
 from prefect import flow
 
-from aircmd.models.base import GlobalSettings, PipelineContext
+from aircmd.models.base import PipelineContext
 from aircmd.models.click_commands import ClickCommandMetadata, ClickGroup
+from aircmd.models.click_utils import LazyPassDecorator
 from aircmd.models.plugins import DeveloperPlugin
-from aircmd.models.utils import LazyPassDecorator
+from aircmd.models.settings import GlobalSettings
 
 from .tasks import build_task, test_task
 
-print("a")
 settings = GlobalSettings()
-print("b")
-def create_pipeline_context():
-    return PipelineContext(global_settings=settings)
-
-settings = GlobalSettings()
-pass_pipeline_context = LazyPassDecorator(PipelineContext, global_settings=settings)
-pass_global_settings = LazyPassDecorator(GlobalSettings)
+pass_pipeline_context: LazyPassDecorator = LazyPassDecorator(PipelineContext, global_settings=settings)
+pass_global_settings: LazyPassDecorator = LazyPassDecorator(GlobalSettings)
 
 
 core_group = ClickGroup(group_name="core", group_help="Commands for developing on aircmd")

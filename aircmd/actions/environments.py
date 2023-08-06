@@ -13,7 +13,8 @@ from typing import Callable, List, Optional, Tuple
 import dagger
 from dagger import CacheSharingMode, CacheVolume, Client, Container, Directory, File
 
-from ..models.base import GlobalSettings, PipelineContext
+from ..models.base import PipelineContext
+from ..models.settings import GlobalSettings
 from .constants import CRANE_DEBUG_IMAGE, PYTHON_IMAGE
 from .pipelines import get_file_contents, get_repo_dir
 from .strings import slugify
@@ -221,6 +222,7 @@ def with_bound_docker_host(
         Container: The container bound to the docker host.
     """
     dockerd = context.dockerd_service
+    assert dockerd is not None
     docker_hostname = "global-docker-host"
     return (
         container.with_env_variable("DOCKER_HOST", f"tcp://{docker_hostname}:2375")
@@ -444,8 +446,8 @@ def with_crane(
 
     base_container = client.container().from_(CRANE_DEBUG_IMAGE)
     if settings.SECRET_DOCKER_HUB_USERNAME and settings.SECRET_DOCKER_HUB_PASSWORD:
-        dockerhub_user = client.set_secret("docker_hub_username", settings.SECRET_DOCKER_HUB_USERNAME)
-        dockerhub_password = client.set_secret("docker_hub_password", settings.SECRET_DOCKER_HUB_PASSWORD)
+        dockerhub_user = client.set_secret("docker_hub_username", settings.SECRET_DOCKER_HUB_USERNAME.get_secret_value())
+        dockerhub_password = client.set_secret("docker_hub_password", settings.SECRET_DOCKER_HUB_PASSWORD.get_secret_value())
         base_container = (
             base_container
             .with_secret_variable("DOCKER_HUB_USERNAME", dockerhub_user)

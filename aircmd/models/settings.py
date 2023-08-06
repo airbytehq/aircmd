@@ -3,40 +3,40 @@ import platform
 from typing import Callable, List, Optional
 
 import platformdirs
-import pygit2
 from dagger import Container
 from pydantic import BaseSettings, Field, SecretStr
+from pygit2 import Commit, Repository  #type: ignore
 
 from .singleton import Singleton
 
 
 def get_git_revision() -> str:
-    repo = pygit2.Repository(".") 
-    commit_hash = repo.revparse_single("HEAD").short_id
+    repo = Repository(".") 
+    commit_hash:str = repo.revparse_single("HEAD").short_id
     return commit_hash
 
 def get_current_branch() -> str:    
-    repo = pygit2.Repository(".")                                                                                                                                                                                                                                                                                                                           
-    return repo.head.shorthand                                                                                                                                                                   
+    repo = Repository(".")                                                                                                                                                                                                                                                                                                                           
+    return str(repo.head.shorthand)                                                                                                                                                                   
                                                                                                                                                                                                 
 def get_latest_commit_message() -> str:   
-    repo = pygit2.Repository(".")                                                                                                                                                                                                                                                                                                                      
-    commit = repo[repo.head.target]                                                                                                                                                              
-    return commit.message                                                                                                                                                                        
+    repo = Repository(".")                                                                                                                                                                                                                                                                                                                      
+    commit: Commit = repo[repo.head.target]                                                                                                                                                              
+    return str(commit.message)                                                                                                                                                                   
                                                                                                                                                                                                 
 def get_latest_commit_author() -> str:  
-    repo = pygit2.Repository(".")                                                                                                                                                                                                                                                                                                                       
-    commit = repo[repo.head.target]                                                                                                                                                              
-    return commit.author.name                                                                                                                                                                    
+    repo: Repository = Repository(".")                                                                                                                                                                                                                                                                                                                       
+    commit: Commit = repo[repo.head.target]                                                                                                                                                              
+    return str(commit.author.name)                                                                                                                                                               
                                                                                                                                                                                                 
 def get_latest_commit_time() -> str:    
-    repo = pygit2.Repository(".")                                                                                                                                                                                                                                                                                                                      
-    commit = repo[repo.head.target]                                                                                                                                                              
+    repo = Repository(".")                                                                                                                                                                                                                                                                                                                      
+    commit: Commit = repo[repo.head.target]                                                                                                                                                              
     return str(commit.commit_time)       
 
 def get_repo_root_path() -> str:
-    repo = pygit2.Repository(".")
-    return os.path.dirname(os.path.dirname(repo.path))
+    repo = Repository(".")
+    return str(os.path.dirname(os.path.dirname(repo.path)))
 
 # Immutable. Use this for application configuration. Created at bootstrap.
 class GlobalSettings(BaseSettings, Singleton):
@@ -94,6 +94,7 @@ class GlobalSettings(BaseSettings, Singleton):
     class Config:                                                                                                                                                        
          arbitrary_types_allowed = True                                                                                                                                   
          env_file = '.env' 
+         allow_mutation = False
 
 
 '''

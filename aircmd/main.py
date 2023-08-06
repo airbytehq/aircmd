@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from .core.plugins import plugin_group
 from .models.base import GlobalContext
 from .models.click_commands import ClickGroup
-from .models.utils import LazyPassDecorator
+from .models.click_utils import LazyPassDecorator
 
 load_dotenv()
 

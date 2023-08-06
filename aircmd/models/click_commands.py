@@ -8,7 +8,7 @@ from .click_params import ClickArgument, ClickFlag, ClickOption
 __all__ = ["ClickArgument", "ClickCommandMetadata", "ClickCommand", "ClickGroupMetadata", "ClickGroup"]
 
 if TYPE_CHECKING:
-    from .utils import map_pyd_cmd_to_click_command
+    from .click_utils import map_pyd_cmd_to_click_command
 
 TYPE_MAPPING: Dict[str, Any] = {
     "int": int,
@@ -137,7 +137,7 @@ class ClickGroup(ClickGroupMetadata):
     
     @property
     def click_group(self) -> Group:
-        from .utils import (
+        from .click_utils import (
             map_pyd_cmd_to_click_command,
             map_pyd_grp_to_click_group,
             map_pyd_opt_to_click_option,
