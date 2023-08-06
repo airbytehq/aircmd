@@ -33,8 +33,9 @@ class CICommand(ClickCommandMetadata):
 
 @core_group.command(BuildCommand())
 @pass_pipeline_context
+@pass_global_settings
 @flow(validate_parameters=False, name="Aircmd Core Build")
-async def build(ctx: PipelineContext, client: Optional[Client] = None) ->  Awaitable[Container]:
+async def build(ctx: PipelineContext, settings: GlobalSettings, client: Optional[Client] = None) ->  Awaitable[Container]:
     build_client = await ctx.get_dagger_client(client, ctx.prefect_flow_run_context.flow_run.name)
     build_future = await build_task.submit(build_client)
     return build_future.result()

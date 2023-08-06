@@ -1658,6 +1658,20 @@ files = [
 plugins = ["importlib-metadata"]
 
 [[package]]
+name = "pyonepassword"
+version = "3.12.1"
+description = "A python API to query a 1Password account using the 'op' command-line tool"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pyonepassword-3.12.1-py3-none-any.whl", hash = "sha256:3cef4a976de6a66fb907b3ea7d27890ae22297e856b191aa846389376f688673"},
+    {file = "pyonepassword-3.12.1.tar.gz", hash = "sha256:9d6e98129c2910aaafbfecfcb0245f8a88c39172c8dee37c11cf1e49907faba7"},
+]
+
+[package.dependencies]
+python-singleton-metaclasses = "*"
+
+[[package]]
 name = "pytest"
 version = "7.4.0"
 description = "pytest: simple powerful testing with Python"
@@ -1704,6 +1718,16 @@ files = [
 
 [package.extras]
 cli = ["click (>=5.0)"]
+
+[[package]]
+name = "python-singleton-metaclasses"
+version = "0.2.1"
+description = "A package of python metclasses for implementing singleton and related patterns."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "python-singleton-metaclasses-0.2.1.tar.gz", hash = "sha256:7abaad530dd1e2aa74bd0a8a00fd6bf9acf811e015f1eb68024147a4f202be1e"},
+]
 
 [[package]]
 name = "python-slugify"
@@ -2622,4 +2646,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "58c2ba14165a937867c4b6f8b458d2eba5dc516474ca01f9c4b46bc5f827c60e"
+content-hash = "92870d6ea1e3df66f7f3ec9e4ee87ac4a541d320ef08dee0e8555c4f78527aa0"

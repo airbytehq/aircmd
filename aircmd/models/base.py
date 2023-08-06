@@ -15,8 +15,9 @@ from prefect.context import (
     get_settings_context,
     tags,
 )
-from pydantic import BaseModel, BaseSettings, Field, PrivateAttr
+from pydantic import BaseModel, BaseSettings, Field, PrivateAttr, SecretStr
 
+from ..blocks.onepassword import OnePasswordBlock
 from ..plugin_manager import PluginManager
 
 
@@ -68,8 +69,8 @@ class GlobalSettings(BaseSettings, Singleton):
     PREFECT_COMMA_DELIMITED_USER_TAGS: str = Field("", env="PREFECT_COMMA_DELIMITED_USER_TAGS")
     PREFECT_COMMA_DELIMITED_SYSTEM_TAGS: str = Field("CI:False", env="PREFECT_COMMA_DELIMITED_SYSTEM_TAGS")
 
-    SECRET_DOCKER_HUB_USERNAME: Optional[str] = Field(None, env="SECRET_DOCKER_HUB_USERNAME")
-    SECRET_DOCKER_HUB_PASSWORD: Optional[str] = Field(None, env="SECRET_DOCKER_HUB_PASSWORD")
+    SECRET_DOCKER_HUB_USERNAME: Optional[SecretStr] = Field(None, env="SECRET_DOCKER_HUB_USERNAME")
+    SECRET_DOCKER_HUB_PASSWORD: Optional[SecretStr] = Field(None, env="SECRET_DOCKER_HUB_PASSWORD")
     
     PIP_CACHE_DIR: str = Field(
         default_factory=lambda: platformdirs.user_cache_dir("pip"),
@@ -79,6 +80,35 @@ class GlobalSettings(BaseSettings, Singleton):
     class Config:                                                                                                                                                        
          arbitrary_types_allowed = True                                                                                                                                   
          env_file = '.env' 
+
+    _frozen: bool = False
+
+    vault_names: List[str] = ["CI"]
+
+    def __init__(self, **data: Any):                                                                                                                                                                        
+        super().__init__(**data)                                                                                                                                                                                                                               
+        try:
+            for vault_name in self.vault_names:
+                op_block = OnePasswordBlock(vault_name=vault_name)
+                vault_secrets = op_block.get_secrets_for_vault()
+                for key, value in self.__dict__.items():
+                    if value is None and key in vault_secrets:
+                        setattr(self, key, SecretStr(vault_secrets[key]))
+        except Exception:
+            print("Warning: Failed to fetch secrets from 1Password. Falling back to local environment variables.")
+        self._frozen = True
+        self.check_secrets()
+
+    def check_secrets(self):
+        for key, value in self.__dict__.items():
+            if isinstance(value, SecretStr) and value.get_secret_value() is None:
+                print(f"Warning: The {key} secret is not set.")
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if self._frozen:
+            raise TypeError(f"{self.__class__.__name__} is immutable")
+        super().__setattr__(name, value)
+        
 
 # this is a bit of a hack to get around how prefect resolves parameters
 # basically without this, prefect will attempt to access the context
