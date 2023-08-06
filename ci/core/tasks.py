@@ -16,7 +16,6 @@ async def build_task(client: Client) -> Container:
             #.with_exec(["poetry", "run", "ruff", "."])
             .with_exec(["poetry", "build"])
     )
-    await result.sync()
     return result
 
 @task
@@ -32,5 +31,4 @@ async def test_task(client: Client, build_result: Container) -> Container:
             .with_exec(["sh", "-c", "poetry run pip install $(find /src/dist -name 'aircmd-*.whl')"])  # Install the wheel file using Poetry
             .with_exec(["poetry", "run", "pytest"])  # Run the tests using Poetry
     )
-    await result.sync()
     return result

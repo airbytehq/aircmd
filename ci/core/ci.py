@@ -1,6 +1,6 @@
 
 
-from typing import Awaitable, Optional
+from typing import Optional
 
 from dagger import Client, Container
 from prefect import flow
@@ -34,27 +34,30 @@ class CICommand(ClickCommandMetadata):
 @core_group.command(BuildCommand())
 @pass_pipeline_context
 @flow(validate_parameters=False, name="Aircmd Core Build")
-async def build(ctx: PipelineContext, client: Optional[Client] = None) ->  Awaitable[Container]:
+async def build(ctx: PipelineContext, client: Optional[Client] = None) ->  Container:
     build_client = await ctx.get_dagger_client(client, ctx.prefect_flow_run_context.flow_run.name)
     build_future = await build_task.submit(build_client)
-    return build_future.result()
+    result = await build_future.result()
+    return result
 
 @core_group.command(TestCommand())
 @pass_pipeline_context
 @flow(validate_parameters=False, name="Aircmd Core Test")
-async def test(ctx: PipelineContext, client: Optional[Client] = None) -> Awaitable[Container]:
+async def test(ctx: PipelineContext, client: Optional[Client] = None) -> Container:
     test_client = await ctx.get_dagger_client(client, ctx.prefect_flow_run_context.flow_run.name)
     build_result = await build()
     test_future = await test_task.submit(test_client, build_result)
-    return test_future.result()
+    result = await test_future.result()
+    return result
 
 @core_group.command(CICommand())
 @pass_pipeline_context
 @flow(validate_parameters=False, name = "Aircmd Core CI")
-async def ci(ctx: PipelineContext, client: Optional[Client] = None) -> Awaitable[Container]:
+async def ci(ctx: PipelineContext, client: Optional[Client] = None) -> Container:
     #ci_client = await ctx.get_dagger_client(client, ctx.prefect_flow_run_context.flow_run.name)
     test_result: Container = await test()
-    return test_result
+    result: Container = await test_result
+    return result
 
 
 core_ci_plugin = DeveloperPlugin(name = "core_ci", base_dirs = ["aircmd"])
