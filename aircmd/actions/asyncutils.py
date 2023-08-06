@@ -4,7 +4,7 @@ from typing import Any, Callable, Coroutine, Dict, List, Tuple
 from prefect.utilities.asyncutils import create_gather_task_group
 
 
-async def gather(*calls: Callable[..., Coroutine[Any, Any, Any]], args: List[Tuple] = None, kwargs: List[Dict] = None) -> List[Any]:
+async def gather(*calls: Callable[..., Coroutine[Any, Any, Any]], args: List[Tuple[Any, ...]] = [], kwargs: List[Dict[str, Any]] = []) -> List[Any]:
     """
     Run calls concurrently and gather their results.
 

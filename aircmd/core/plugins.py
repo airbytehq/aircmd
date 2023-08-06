@@ -9,14 +9,14 @@ import requests
 from ..models.base import GlobalContext, GlobalSettings
 from ..models.click_commands import ClickCommandMetadata, ClickGroup
 from ..models.click_params import ClickArgument, ClickOption
-from ..models.utils import make_pass_decorator
+from ..models.utils import LazyPassDecorator
 
 plugin_group = ClickGroup(group_name="plugin", group_help="Commands for managing plugins")
 
 #logger = structlog.get_logger()
 
-pass_global_context = make_pass_decorator(GlobalContext, ensure=True)
-pass_global_settings = make_pass_decorator(GlobalSettings, ensure=True)
+pass_global_context = LazyPassDecorator(GlobalContext, ensure=True)
+pass_global_settings = LazyPassDecorator(GlobalSettings, ensure=True)
 
 
 class ListCommand(ClickCommandMetadata):

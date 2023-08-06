@@ -8,12 +8,19 @@ from prefect import flow
 from aircmd.models.base import GlobalSettings, PipelineContext
 from aircmd.models.click_commands import ClickCommandMetadata, ClickGroup
 from aircmd.models.plugins import DeveloperPlugin
-from aircmd.models.utils import make_pass_decorator
+from aircmd.models.utils import LazyPassDecorator
 
 from .tasks import build_task, test_task
 
-pass_pipeline_context = make_pass_decorator(PipelineContext, ensure=True)
-pass_global_settings = make_pass_decorator(GlobalSettings, ensure=True)
+print("a")
+settings = GlobalSettings()
+print("b")
+def create_pipeline_context():
+    return PipelineContext(global_settings=settings)
+
+settings = GlobalSettings()
+pass_pipeline_context = LazyPassDecorator(PipelineContext, global_settings=settings)
+pass_global_settings = LazyPassDecorator(GlobalSettings)
 
 
 core_group = ClickGroup(group_name="core", group_help="Commands for developing on aircmd")

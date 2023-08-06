@@ -1,10 +1,7 @@
-import asyncio
-import platform
 import sys
-from typing import Any, Callable, List, Optional, Type, Union
+from typing import Any, Callable, Optional, Union
 
 import dagger
-import platformdirs
 from asyncclick import Context, get_current_context
 from dagger.api.gen import Client, Container
 from prefect.context import (
@@ -15,70 +12,12 @@ from prefect.context import (
     get_settings_context,
     tags,
 )
-from pydantic import BaseModel, BaseSettings, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr
 
 from ..plugin_manager import PluginManager
+from .settings import GlobalSettings
+from .singleton import Singleton
 
-
-class Singleton:
-    _instances: dict[Type['Singleton'], Any] = {}
-
-    def __new__(cls: Type['Singleton'], *args: Any, **kwargs: Any) -> Any:
-        if cls not in cls._instances:
-            cls._instances[cls] = super().__new__(cls)
-        return cls._instances[cls]
-
-    
-# Immutable. Use this for application configuration. Created at bootstrap.
-class GlobalSettings(BaseSettings, Singleton):
-    GITHUB_TOKEN: Optional[str] = Field(None, env="GITHUB_TOKEN")
-    CI: bool = Field(False, env="CI")
-    LOG_LEVEL: str = Field("WARNING", env="LOG_LEVEL")
-    PLATFORM: str = platform.system()
-    POETRY_CACHE_DIR: str = Field(
-        default_factory=lambda: platformdirs.user_cache_dir("pypoetry"),
-        env="POETRY_CACHE_DIR"
-    )
-    MYPY_CACHE_DIR: str = Field("~/.cache/.mypy_cache", env="MYPY_CACHE_DIR")
-    DEFAULT_PYTHON_EXCLUDE: List[str] = Field(["**/.venv", "**/__pycache__"], env="DEFAULT_PYTHON_EXCLUDE")
-    DEFAULT_EXCLUDED_FILES: List[str] = Field(
-        [
-            ".git",
-            "**/build",
-            "**/.venv",
-            "**/secrets",
-            "**/__pycache__",
-            "**/*.egg-info",
-            "**/.vscode",
-            "**/.pytest_cache",
-            "**/.eggs",
-            "**/.mypy_cache",
-            "**/.DS_Store",
-        ],
-        env="DEFAULT_EXCLUDED_FILES"
-    )
-    DOCKER_VERSION:str = Field("20.10.23", env="DOCKER_VERSION")
-    DOCKER_DIND_IMAGE: str = Field("docker:20-dind", env="DOCKER_DIND_IMAGE")
-    DOCKER_CLI_IMAGE: str = Field("docker:20-cli", env="DOCKER_CLI_IMAGE")
-    GRADLE_CACHE_PATH: str = Field("/root/.gradle", env="GRADLE_CACHE_PATH")
-    GRADLE_BUILD_CACHE_PATH: str = Field(f"{GRADLE_CACHE_PATH}/build-cache-1", env="GRADLE_BUILD_CACHE_PATH")
-    GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH: str = Field("/root/gradle_dependency_cache", env="GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH")
-
-    PREFECT_API_URL: str = Field("http://127.0.0.1:4200/api", env="PREFECT_API_URL")
-    PREFECT_COMMA_DELIMITED_USER_TAGS: str = Field("", env="PREFECT_COMMA_DELIMITED_USER_TAGS")
-    PREFECT_COMMA_DELIMITED_SYSTEM_TAGS: str = Field("CI:False", env="PREFECT_COMMA_DELIMITED_SYSTEM_TAGS")
-
-    SECRET_DOCKER_HUB_USERNAME: Optional[str] = Field(None, env="SECRET_DOCKER_HUB_USERNAME")
-    SECRET_DOCKER_HUB_PASSWORD: Optional[str] = Field(None, env="SECRET_DOCKER_HUB_PASSWORD")
-    
-    PIP_CACHE_DIR: str = Field(
-        default_factory=lambda: platformdirs.user_cache_dir("pip"),
-        env="PIP_CACHE_DIR"
-    )
-
-    class Config:                                                                                                                                                        
-         arbitrary_types_allowed = True                                                                                                                                   
-         env_file = '.env' 
 
 # this is a bit of a hack to get around how prefect resolves parameters
 # basically without this, prefect will attempt to access the context
@@ -88,16 +27,16 @@ def get_context() -> Context:
     return get_current_context()   
 
 class PipelineContext(BaseModel, Singleton):
+    global_settings: GlobalSettings
     dockerd_service: Optional[Container] = Field(default=None)
     _dagger_client: Optional[Client] = PrivateAttr(default=None)
     _click_context: Callable[[], Context] = PrivateAttr(default_factory=lambda: get_context)
-    _main_event_loop: asyncio.AbstractEventLoop = PrivateAttr(default_factory=asyncio.get_event_loop)
 
     class Config:
         arbitrary_types_allowed=True
 
-    def __init__(self, **data: dict[str, Any]):
-        super().__init__(**data)
+    def __init__(self, global_settings: GlobalSettings, **data: dict[str, Any]):
+        super().__init__(global_settings=global_settings, **data)
         self.set_global_prefect_tag_context()
     
     async def get_dagger_client(self, client: Optional[Client] = None, pipeline_name: Optional[str] = None) -> Client:
@@ -110,8 +49,8 @@ class PipelineContext(BaseModel, Singleton):
     
     def set_global_prefect_tag_context(self) -> Optional[TagsContext]:
         if not TagsContext.get().current_tags:
-            system_tags = GlobalSettings().PREFECT_COMMA_DELIMITED_SYSTEM_TAGS.split(",")
-            user_tags = GlobalSettings().PREFECT_COMMA_DELIMITED_USER_TAGS.split(",")
+            system_tags = self.global_settings.PREFECT_COMMA_DELIMITED_SYSTEM_TAGS.split(",")
+            user_tags = self.global_settings.PREFECT_COMMA_DELIMITED_USER_TAGS.split(",")
             all_tags = system_tags + user_tags
             self._click_context().with_resource(tags(*all_tags))  # type: ignore
         return None  # type: ignore

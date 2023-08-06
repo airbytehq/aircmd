@@ -1,6 +1,5 @@
 from functools import wraps
-from inspect import signature
-from typing import Any, Callable, List, Optional
+from typing import Callable, List, Optional
 
 import pygit2
 from asyncclick import Argument, Command, Group, Option, Parameter
@@ -84,41 +83,20 @@ def map_pyd_grp_to_click_group(group_model: ClickGroup) -> Group:
 
     return click_group
 
+class LazyPassDecorator:
+    def __init__(self, cls, *args, **kwargs):
+        self.cls = cls
+        self.args = args
+        self.kwargs = kwargs
 
-def make_pass_decorator(object_type: Any, ensure: bool=False) -> Callable[..., Any]:
-    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
-        sig = signature(f)
-        params = sig.parameters
-        # Check if function accepts object_type
-        if any(True for param in params.values() if param.annotation is object_type):
-            @wraps(f)
-            def new_func(*args: tuple[Any], **kwargs:dict[str, Any]) -> Any:
-                ctx = None
-                # Find the context object among the arguments
-                for arg in args:
-                    if isinstance(arg, object_type):
-                        ctx = arg
-                        break
-
-                if ctx is None:
-                    if ensure:
-                        ctx = object_type()
-                    else:
-                        raise RuntimeError(f"No object of type {object_type} found.")
-                # If function has **kwargs, we can put the context there
-                if params.get('kwargs', None) is not None and 'kwargs' not in kwargs:
-                    kwargs['kwargs'] = ctx
-                
-                # Otherwise, add it to positional arguments
-                else:
-                    args = (*args, ctx)
-                
-                return f(*args, **kwargs)
-            
-            return new_func
-        else:
-            raise RuntimeError(f"Function {f.__name__} does not accept an argument of type {object_type}.")
-    return decorator
+    def __call__(self, f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Create an instance of the class
+            instance = self.cls(*self.args, **self.kwargs)
+            # Call the function with the instance as an argument
+            return f(instance, *args, **kwargs)
+        return decorated_function
 
 
 def get_git_revision() -> str:

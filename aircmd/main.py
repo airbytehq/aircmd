@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from .core.plugins import plugin_group
 from .models.base import GlobalContext
 from .models.click_commands import ClickGroup
-from .models.utils import make_pass_decorator
+from .models.utils import LazyPassDecorator
 
 load_dotenv()
 
@@ -19,7 +19,7 @@ load_dotenv()
 gctx = GlobalContext()
 
 # Create a Click context
-global_context = make_pass_decorator(GlobalContext, ensure=True)
+global_context = LazyPassDecorator(GlobalContext, ensure=True)
 
 
 
