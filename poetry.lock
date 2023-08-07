@@ -514,13 +514,13 @@ test-randomorder = ["pytest-randomly"]
 
 [[package]]
 name = "dagger-io"
-version = "0.6.4"
+version = "0.8.1"
 description = "A client package for running Dagger pipelines in Python."
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "dagger_io-0.6.4-py3-none-any.whl", hash = "sha256:b1bea624d1428a40228fffaa96407292cc3d18a7eca5bc036e6ceb9abd903d9a"},
-    {file = "dagger_io-0.6.4.tar.gz", hash = "sha256:b754fd9820c41904e344377330ccca88f0a3409023eea8f0557db739b871e552"},
+    {file = "dagger_io-0.8.1-py3-none-any.whl", hash = "sha256:9cd80429b38e16099aa54a90e46dac482d99a6533fbe1c037408cfe8a8360913"},
+    {file = "dagger_io-0.8.1.tar.gz", hash = "sha256:86880f0006260865cf7c92a7387883e85632d644abe8e2ad6d48c69185beca89"},
 ]
 
 [package.dependencies]
@@ -531,10 +531,10 @@ gql = ">=3.4.0"
 graphql-core = ">=3.2.3"
 httpx = ">=0.23.1"
 platformdirs = ">=2.6.2"
+rich = ">=10.11.0"
 typing-extensions = ">=4.4.0"
 
 [package.extras]
-cli = ["typer[all] (>=0.6.1)"]
 server = ["strawberry-graphql (>=0.187.0)", "typer[all] (>=0.6.1)"]
 
 [[package]]
@@ -2622,4 +2622,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "58c2ba14165a937867c4b6f8b458d2eba5dc516474ca01f9c4b46bc5f827c60e"
+content-hash = "6f4a5bede19ca56402b7f38d4c30f8b16547b4036a0cb1127c17b44f50e47b3a"

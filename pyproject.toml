@@ -11,7 +11,7 @@ packages = [
 [tool.poetry.dependencies]
 prefect = {git = "https://github.com/PrefectHQ/prefect.git", rev = "tasks-on-main-thread"}
 python = "^3.11"
-dagger-io = "^0.6.4"
+dagger-io = "^0.8.1"
 structlog = "^23.1.0"
 rich = "^13.3.5"
 pydantic = "^1.10"

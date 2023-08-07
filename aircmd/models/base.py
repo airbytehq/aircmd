@@ -3,7 +3,7 @@ from typing import Any, Callable, Optional, Union
 
 import dagger
 from asyncclick import Context, get_current_context
-from dagger.api.gen import Client, Container
+from dagger import Client, Container
 from prefect.context import (
     FlowRunContext,
     SettingsContext,
