@@ -55,5 +55,6 @@ jobs:
             curl "https://dl.dagger.io/dagger/main/${DAGGER_CLI_COMMIT}/dagger_${DAGGER_CLI_COMMIT}_$(uname -s | tr A-Z a-z)_$(uname -m | sed s/x86_64/amd64/).tar.gz" | tar xvz -C "$DAGGER_TMP_BINDIR"
           fi
           poetry install
+          poetry run aircmd plugin install core_ci --local .
           poetry run aircmd core ci
       
