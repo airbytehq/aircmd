@@ -89,11 +89,12 @@ class LazyPassDecorator:
     def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:                                                                                                                             
         @wraps(f)                                                                                                                                                                                
         def decorated_function(*args: Any, **kwargs: Any) -> Any:                                                                                                                                
+            # Check if the kwargs already contain the arguments being passed by the decorator
+            decorator_kwargs = {k: v for k, v in self.kwargs.items() if k not in kwargs}
             # Create an instance of the class                                                                                                                                                    
-            instance = self.cls(*self.args, **self.kwargs)                                                                                                                                       
+            instance = self.cls(*self.args, **decorator_kwargs)                                                                                                                                       
             # Call the function with the instance as an argument                                                                                                                                 
             return f(instance, *args, **kwargs)                                                                                                                                                  
-        return decorated_function      
-
+        return decorated_function
 
 
