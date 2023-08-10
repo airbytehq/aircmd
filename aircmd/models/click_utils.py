@@ -93,8 +93,13 @@ class LazyPassDecorator:
             decorator_kwargs = {k: v for k, v in self.kwargs.items() if k not in kwargs}
             # Create an instance of the class                                                                                                                                                    
             instance = self.cls(*self.args, **decorator_kwargs)                                                                                                                                       
-            # Call the function with the instance as an argument                                                                                                                                 
-            return f(instance, *args, **kwargs)                                                                                                                                                  
+            # If function has **kwargs, we can put the instance there
+            if 'kwargs' in kwargs:
+                kwargs['kwargs'] = instance
+            # Otherwise, add it to positional arguments
+            else:
+                args = (*args, instance)
+            return f(*args, **kwargs)                                                                                                                                                  
         return decorated_function
 
 
