@@ -39,10 +39,17 @@ class PipelineContext(BaseModel, Singleton):
         super().__init__(global_settings=global_settings, **data)
         self.set_global_prefect_tag_context()
     
+    import asyncio
+
+    _dagger_client_lock: asyncio.Lock = PrivateAttr(default_factory=asyncio.Lock)
+
     async def get_dagger_client(self, client: Optional[Client] = None, pipeline_name: Optional[str] = None) -> Client:
         if not self._dagger_client:
-            connection = dagger.Connection(dagger.Config(log_output=sys.stdout))
-            self._dagger_client = await self._click_context().with_async_resource(connection) # type: ignore
+            async with self._dagger_client_lock:
+                if not self._dagger_client:
+                    connection = dagger.Connection(dagger.Config(log_output=sys.stdout))
+                    print("ABC123")
+                    self._dagger_client = await self._click_context().with_async_resource(connection) # type: ignore
         client = self._dagger_client
         assert client, "Error initializing Dagger client"
         return client.pipeline(pipeline_name) if pipeline_name else client
