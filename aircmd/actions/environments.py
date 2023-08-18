@@ -20,6 +20,10 @@ from .pipelines import get_file_contents, get_repo_dir
 from .strings import slugify
 
 
+def with_typescript_gha_base(client: Client, github_action_name: str) -> Container:
+    pass
+
+
 def with_python_base(client: Client, python_image_name: str = PYTHON_IMAGE) -> Container:
     """Build a Python container with a cache volume for pip cache.
     
