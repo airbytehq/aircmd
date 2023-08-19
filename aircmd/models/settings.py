@@ -1,10 +1,10 @@
 import os
 import platform
-from typing import Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 import platformdirs
-from dagger import Container
-from pydantic import BaseSettings, Field, SecretStr
+from dagger import Client, Container
+from pydantic import BaseSettings, Field, SecretBytes, SecretStr
 from pygit2 import Commit, Repository  #type: ignore
 
 from .singleton import Singleton
@@ -38,18 +38,38 @@ def get_repo_root_path() -> str:
     repo = Repository(".")
     return str(os.path.dirname(os.path.dirname(repo.path)))
 
+def get_git_repo_name() -> str:                                                                                              
+    repo = Repository(".")                                                                                                   
+    repo_url:str = repo.remotes["origin"].url                                                                                    
+    repo_name:str = repo_url.split("/")[-1].replace(".git", "")                                                                  
+    return repo_name   
+
 # Immutable. Use this for application configuration. Created at bootstrap.
 class GlobalSettings(BaseSettings, Singleton):
-    GITHUB_TOKEN: Optional[str] = Field(None, env="GITHUB_TOKEN")
+    DAGGER: bool = Field(True, env="DAGGER")  
+    GITHUB_TOKEN: Optional[SecretStr] = Field(None, env="GITHUB_TOKEN")
     GIT_CURRENT_REVISION: str = Field(default_factory=get_git_revision)                                                                                                                                  
     GIT_CURRENT_BRANCH: str = Field(default_factory=get_current_branch)                                                                                                                              
     GIT_LATEST_COMMIT_MESSAGE: str = Field(default_factory=get_latest_commit_message)                                                                                                                
     GIT_LATEST_COMMIT_AUTHOR: str = Field(default_factory=get_latest_commit_author)                                                                                                                  
-    GIT_LATEST_COMMIT_TIME: str = Field(default_factory=get_latest_commit_time)       
+    GIT_LATEST_COMMIT_TIME: str = Field(default_factory=get_latest_commit_time)   
+    GIT_REPOSITORY: str = Field(default_factory=get_git_repo_name)       
     GIT_REPO_ROOT_PATH: str = Field(default_factory=get_repo_root_path)
     CI: bool = Field(False, env="CI")
     LOG_LEVEL: str = Field("WARNING", env="LOG_LEVEL")
     PLATFORM: str = platform.system()
+
+    # https://github.com/actions/toolkit/blob/7b617c260dff86f8d044d5ab0425444b29fa0d18/packages/github/src/context.ts#L6
+    GITHUB_EVENT_NAME: str = Field("local_event", env="GITHUB_EVENT_NAME")
+    GITHUB_ACTION: str = Field("local_action", env="GITHUB_ACTION")
+    GITHUB_ACTOR: str = Field("local_actor", env="GITHUB_ACTOR")
+    GITHUB_JOB: str = Field("local_job", env="GITHUB_JOB")
+    GITHUB_RUN_NUMBER: int = Field(0, env="GITHUB_RUN_NUMBER")
+    GITHUB_RUN_ID: int = Field(0, env="GITHUB_RUN_ID")
+    GITHUB_API_URL: str = Field("https://api.github.com", env="GITHUB_API_URL")
+    GITHUB_SERVER_URL: str = Field("https://github.com", env="GITHUB_SERVER_URL")
+    GITHUB_GRAPHQL_URL: str = Field("https://api.github.com/graphql", env="GITHUB_GRAPHQL_URL")
+
     POETRY_CACHE_DIR: str = Field(
         default_factory=lambda: platformdirs.user_cache_dir("pypoetry"),
         env="POETRY_CACHE_DIR"
@@ -108,7 +128,7 @@ Here's the order of operations:
  3 The remaining environment variables will be loaded into the container.   
 '''                                                                                                             
                                                                                                                                                                 
-def load_settings(settings: GlobalSettings, include: Optional[List[str]] = None, exclude: Optional[List[str]] = None) -> Callable[[Container], Container]:     
+def load_settings(client: Client, settings: BaseSettings, include: Optional[List[str]] = None, exclude: Optional[List[str]] = None) -> Callable[[Container], Container]:     
     def load_envs(ctr: Container) -> Container:                                                                                                                
         settings_dict = {key: value for key, value in settings.dict().items() if value is not None}                                                            
                                                                                                                                                             
@@ -120,8 +140,73 @@ def load_settings(settings: GlobalSettings, include: Optional[List[str]] = None,
                                                                                                                                                             
         for key, value in settings_dict.items():
             env_key = key.upper()
-            ctr = ctr.with_env_variable(env_key, str(value))
+            if isinstance(value, SecretStr) or isinstance(value, SecretBytes): # env var can be stored in buildkit layer cache, so we must use client.secret instead
+                secret = client.set_secret(env_key, str(value.get_secret_value()))
+                ctr = ctr.with_secret_variable(env_key, secret)
+            else:
+                ctr = ctr.with_env_variable(env_key, str(value))
                                                                                                                                                             
         return ctr                                                                                                                                             
                                                                                                                                                         
     return load_envs     
+
+
+class GithubActionsInputSettings(BaseSettings):
+    """
+    A Pydantic BaseSettings subclass that transforms input names to the format expected by GitHub Actions.
+
+    GitHub Actions converts input names to environment variables in a specific way:
+    - The input name is converted to uppercase.
+    - Any '-' characters are converted to '_'.
+    - The prefix 'INPUT_' is added to the start.
+
+    This class automatically applies these transformations when you create an instance of it.
+
+    Example:
+    If you create an instance with the input {'project-token': 'abc'}, it will be transformed to {'INPUT_PROJECT_TOKEN': 'abc'}.
+    """
+
+    # Github action specific fields
+    GITHUB_ACTION: str
+    GITHUB_ACTOR: str
+    GITHUB_API_URL: str
+    GITHUB_EVENT_NAME: str
+    GITHUB_GRAPHQL_URL: str
+    GITHUB_JOB: str
+    GITHUB_REF: str
+    GITHUB_REPOSITORY: str
+    GITHUB_RUN_ID: str
+    GITHUB_RUN_NUMBER: str
+    GITHUB_SERVER_URL: str
+    GITHUB_SHA: str
+
+    class Config:
+        env_prefix = "INPUT_"
+        extra = "allow" 
+
+    def __init__(self, global_settings: GlobalSettings, **data: Any):
+
+        # transform input names to the format expected by GitHub Actions and prepare them to be injected as environment variables.
+
+        transformed_data = {self.Config.env_prefix + k.replace("-", "_").upper(): v for k, v in data.items()}
+        
+        # inject the context that github actions wants via environment variables.
+        # in typescript, it is injected here:
+        # https://github.com/actions/toolkit/blob/7b617c260dff86f8d044d5ab0425444b29fa0d18/packages/github/src/context.ts#L6
+
+        transformed_data.update({
+            "GITHUB_SHA": global_settings.GIT_CURRENT_REVISION,
+            "GITHUB_REF": global_settings.GIT_CURRENT_BRANCH,
+            "GITHUB_EVENT_NAME": global_settings.GITHUB_EVENT_NAME,
+            "GITHUB_ACTION": global_settings.GITHUB_ACTION,
+            "GITHUB_ACTOR": global_settings.GITHUB_ACTOR,
+            "GITHUB_JOB": global_settings.GITHUB_JOB,
+            "GITHUB_RUN_NUMBER": global_settings.GITHUB_RUN_NUMBER,
+            "GITHUB_RUN_ID": global_settings.GITHUB_RUN_ID,
+            "GITHUB_API_URL": global_settings.GITHUB_API_URL,
+            "GITHUB_SERVER_URL": global_settings.GITHUB_SERVER_URL,
+            "GITHUB_GRAPHQL_URL": global_settings.GITHUB_GRAPHQL_URL,
+            "GITHUB_REPOSITORY": global_settings.GIT_REPOSITORY, 
+        })
+        super().__init__(**transformed_data)
+

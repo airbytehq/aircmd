@@ -14,14 +14,27 @@ import dagger
 from dagger import CacheSharingMode, CacheVolume, Client, Container, Directory, File
 
 from ..models.base import PipelineContext
-from ..models.settings import GlobalSettings
+from ..models.settings import GithubActionsInputSettings, GlobalSettings, load_settings
 from .constants import CRANE_DEBUG_IMAGE, PYTHON_IMAGE
 from .pipelines import get_file_contents, get_repo_dir
 from .strings import slugify
 
 
-def with_typescript_gha_base(client: Client, github_action_name: str) -> Container:
-    pass
+def with_typescript_gha(client: Client, directory: Directory, github_repo: str, release_version: str, inputs:                
+ GithubActionsInputSettings) -> Container:  
+
+    action_url = f"https://github.com/{github_repo}/archive/refs/tags/{release_version}.tar.gz"
+    filename = f"{github_repo.split('/')[-1]}-{release_version}.tar.gz"
+    result: Container = (
+        with_node(client, "latest")
+        .with_directory("/", directory)
+        .with_(load_settings(client, inputs))
+        .with_exec(["curl", "-L", "-o", filename, action_url])
+        .with_exec(["tar", "--strip-components=1", "-xzf", filename])
+        .with_exec(["node", "dist/index.js"]) 
+    )  
+    return result                                                                    
+         
 
 
 def with_python_base(client: Client, python_image_name: str = PYTHON_IMAGE) -> Container:
