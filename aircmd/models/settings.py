@@ -69,6 +69,7 @@ class GlobalSettings(BaseSettings, Singleton):
     GITHUB_API_URL: str = Field("https://api.github.com", env="GITHUB_API_URL")
     GITHUB_SERVER_URL: str = Field("https://github.com", env="GITHUB_SERVER_URL")
     GITHUB_GRAPHQL_URL: str = Field("https://api.github.com/graphql", env="GITHUB_GRAPHQL_URL")
+    GITHUB_EVENT_PATH: Optional[str] = Field(None, env="GITHUB_EVENT_PATH")
 
     POETRY_CACHE_DIR: str = Field(
         default_factory=lambda: platformdirs.user_cache_dir("pypoetry"),
@@ -179,6 +180,7 @@ class GithubActionsInputSettings(BaseSettings):
     GITHUB_RUN_NUMBER: str
     GITHUB_SERVER_URL: str
     GITHUB_SHA: str
+    GITHUB_EVENT_PATH: str
 
     class Config:
         env_prefix = "INPUT_"
@@ -207,6 +209,7 @@ class GithubActionsInputSettings(BaseSettings):
             "GITHUB_SERVER_URL": global_settings.GITHUB_SERVER_URL,
             "GITHUB_GRAPHQL_URL": global_settings.GITHUB_GRAPHQL_URL,
             "GITHUB_REPOSITORY": global_settings.GIT_REPOSITORY, 
+            "GITHUB_EVENT_PATH": global_settings.GITHUB_EVENT_PATH
         })
         super().__init__(**transformed_data)
 

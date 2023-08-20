@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import os
 import uuid
 from typing import Callable, List, Optional, Tuple
 
@@ -28,6 +29,7 @@ def with_typescript_gha(client: Client, directory: Directory, github_repo: str, 
     result: Container = (
         with_node(client, "latest")
         .with_directory("/", directory)
+        .with_directory(os.path.dirname(inputs.GITHUB_EVENT_PATH), client.host().directory( os.path.dirname(inputs.GITHUB_EVENT_PATH), include = inputs.GITHUB_EVENT_PATH))
         .with_(load_settings(client, inputs))
         .with_exec(["curl", "-L", "-o", filename, action_url])
         .with_exec(["tar", "--strip-components=1", "-xzf", filename])
