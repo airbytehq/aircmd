@@ -38,11 +38,23 @@ def get_repo_root_path() -> str:
     repo = Repository(".")
     return str(os.path.dirname(os.path.dirname(repo.path)))
 
-def get_git_repo_name() -> str:                                                                                              
-    repo = Repository(".")                                                                                                   
-    repo_url:str = repo.remotes["origin"].url                                                                                    
-    repo_name:str = repo_url.split("/")[-1].replace(".git", "")                                                                  
-    return repo_name   
+def get_repo_fullname() -> str:                                                                                              
+    repo = Repository(".")
+    repo_url:str = repo.remotes["origin"].url
+    
+    # Handle HTTPS URLs
+    if "https://" in repo_url:
+        parts = repo_url.split("/")
+        owner = parts[-2]
+        repo_name = parts[-1].replace(".git", "")
+    
+    # Handle SSH URLs
+    else:
+        repo_url = repo_url.replace("git@github.com:", "")
+        owner, repo_name = repo_url.split("/")[:2]
+        repo_name = repo_name.replace(".git", "")
+    
+    return f"{owner}/{repo_name}"
 
 # Immutable. Use this for application configuration. Created at bootstrap.
 class GlobalSettings(BaseSettings, Singleton):
@@ -53,7 +65,7 @@ class GlobalSettings(BaseSettings, Singleton):
     GIT_LATEST_COMMIT_MESSAGE: str = Field(default_factory=get_latest_commit_message)                                                                                                                
     GIT_LATEST_COMMIT_AUTHOR: str = Field(default_factory=get_latest_commit_author)                                                                                                                  
     GIT_LATEST_COMMIT_TIME: str = Field(default_factory=get_latest_commit_time)   
-    GIT_REPOSITORY: str = Field(default_factory=get_git_repo_name)       
+    GIT_REPOSITORY: str = Field(default_factory=get_repo_fullname)       
     GIT_REPO_ROOT_PATH: str = Field(default_factory=get_repo_root_path)
     CI: bool = Field(False, env="CI")
     LOG_LEVEL: str = Field("WARNING", env="LOG_LEVEL")
