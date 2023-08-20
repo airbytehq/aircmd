@@ -28,11 +28,16 @@ def with_typescript_gha(client: Client, directory: Directory, github_repo: str, 
     filename = f"{github_repo.split('/')[-1]}-{release_version}.tar.gz"
     result: Container = (
         with_node(client, "latest")
-        .with_directory("/", directory)
+        .with_directory("/input", directory)
         .with_directory(os.path.dirname(inputs.GITHUB_EVENT_PATH), client.host().directory( os.path.dirname(inputs.GITHUB_EVENT_PATH)))
         .with_(load_settings(client, inputs))
+        .with_exec(["printenv"])
         .with_exec(["curl", "-L", "-o", filename, action_url])
         .with_exec(["tar", "--strip-components=1", "-xzf", filename])
+        .with_exec(["chown", "-R", "node:node", "/input"])
+        .with_exec(["chown", "-R", "node:node", inputs.GITHUB_EVENT_PATH])
+        .with_exec(["chmod", "755", "/input"])
+        .with_exec(["chmod", "755", inputs.GITHUB_EVENT_PATH])
         .with_exec(["node", "dist/index.js"]) 
     )  
     return result                                                                    

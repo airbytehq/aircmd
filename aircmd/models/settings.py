@@ -60,7 +60,7 @@ class GlobalSettings(BaseSettings, Singleton):
     PLATFORM: str = platform.system()
 
     # https://github.com/actions/toolkit/blob/7b617c260dff86f8d044d5ab0425444b29fa0d18/packages/github/src/context.ts#L6
-    GITHUB_EVENT_NAME: str = Field("local_event", env="GITHUB_EVENT_NAME")
+    GITHUB_EVENT_NAME: str = Field("push", env="GITHUB_EVENT_NAME")
     GITHUB_ACTION: str = Field("local_action", env="GITHUB_ACTION")
     GITHUB_ACTOR: str = Field("local_actor", env="GITHUB_ACTOR")
     GITHUB_JOB: str = Field("local_job", env="GITHUB_JOB")
@@ -69,7 +69,7 @@ class GlobalSettings(BaseSettings, Singleton):
     GITHUB_API_URL: str = Field("https://api.github.com", env="GITHUB_API_URL")
     GITHUB_SERVER_URL: str = Field("https://github.com", env="GITHUB_SERVER_URL")
     GITHUB_GRAPHQL_URL: str = Field("https://api.github.com/graphql", env="GITHUB_GRAPHQL_URL")
-    GITHUB_EVENT_PATH: Optional[str] = Field(None, env="GITHUB_EVENT_PATH")
+    GITHUB_EVENT_PATH: Optional[str] = Field("/tmp/mockevents", env="GITHUB_EVENT_PATH")
 
     POETRY_CACHE_DIR: str = Field(
         default_factory=lambda: platformdirs.user_cache_dir("pypoetry"),
