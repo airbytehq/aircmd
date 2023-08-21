@@ -360,8 +360,7 @@ def with_gradle(
     openjdk_with_docker = (
         client.container()
         .from_("openjdk:17.0.1-jdk-slim")
-        .with_exec(["apt-get", "update"])
-        .with_exec(["apt-get", "install", "-y", "curl", "jq", "rsync", "nodejs", "npm"]) # we use prettier in java builds unfortunately
+        .with_exec(["bin/bash", "-c", "apt-get update && apt-get install -y curl jq rsync nodejs npm"]) # we use prettier in java builds unfortunately
         .with_env_variable("VERSION", settings.DOCKER_VERSION)
         .with_exec(["sh", "-c", "curl -fsSL https://get.docker.com | sh"])
         .with_env_variable("GRADLE_HOME", "/root/.gradle")
