@@ -118,6 +118,7 @@ class GlobalSettings(BaseSettings, Singleton):
 
     SECRET_DOCKER_HUB_USERNAME: Optional[SecretStr] = Field(None, env="SECRET_DOCKER_HUB_USERNAME")
     SECRET_DOCKER_HUB_PASSWORD: Optional[SecretStr] = Field(None, env="SECRET_DOCKER_HUB_PASSWORD")
+    SECRET_TAILSCALE_AUTHKEY: Optional[SecretStr] = Field(None, env="SECRET_TAILSCALE_AUTHKEY")
     
     PIP_CACHE_DIR: str = Field(
         default_factory=lambda: platformdirs.user_cache_dir("pip"),
