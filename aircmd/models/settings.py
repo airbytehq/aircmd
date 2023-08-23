@@ -106,8 +106,8 @@ class GlobalSettings(BaseSettings, Singleton):
         env="DEFAULT_EXCLUDED_FILES"
     )
     DOCKER_VERSION:str = Field("20.10.23", env="DOCKER_VERSION")
-    DOCKER_DIND_IMAGE: str = Field("docker:20-dind", env="DOCKER_DIND_IMAGE")
-    DOCKER_CLI_IMAGE: str = Field("docker:20-cli", env="DOCKER_CLI_IMAGE")
+    DOCKER_DIND_IMAGE: str = Field("docker:dind", env="DOCKER_DIND_IMAGE")
+    DOCKER_CLI_IMAGE: str = Field("docker:cli", env="DOCKER_CLI_IMAGE")
     GRADLE_CACHE_PATH: str = Field("/root/.gradle", env="GRADLE_CACHE_PATH")
     GRADLE_BUILD_CACHE_PATH: str = Field(f"{GRADLE_CACHE_PATH}/build-cache-1", env="GRADLE_BUILD_CACHE_PATH")
     GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH: str = Field("/root/gradle_dependency_cache", env="GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH")
