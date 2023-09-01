@@ -22,7 +22,7 @@ class PluginManager(BaseModel):
 
     def __init__(self, debug: bool = False, **data: Any) -> None:
         super().__init__(**data)
-        self.debug = debug
+        self.debug: bool = debug
         self.discover()
 
     def discover(self) -> None:

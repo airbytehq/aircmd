@@ -100,11 +100,13 @@ class GlobalContext(BaseModel, Singleton):
     plugin_manager: PluginManager
     pipeline_context: Optional[PipelineContext] = Field(default=None)
     click_context: Optional[Context] = Field(default=None)
+    debug: bool = Field(default=False)
 
     class Config:
         arbitrary_types_allowed = True
 
-    def __init__(self, plugin_manager: Optional[PluginManager] = None, _click_context: Optional[Context] = None, debug=False, **data: Any):
+    def __init__(self, plugin_manager: Optional[PluginManager] = None, _click_context: Optional[Context] = None, debug: bool = False, **data: Any):
+        self.debug: bool = debug
         if plugin_manager is None:
-            plugin_manager = PluginManager(debug=debug)
+            plugin_manager = PluginManager(debug=self.debug)
         super().__init__(plugin_manager=plugin_manager, _click_context=_click_context, **data)
