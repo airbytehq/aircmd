@@ -7,6 +7,7 @@ import tracemalloc
 import anyio
 from asyncclick import Context
 from dotenv import load_dotenv
+from os import getenv
 
 from .core.plugins import plugin_group
 from .models.base import GlobalContext
@@ -15,8 +16,11 @@ from .models.click_utils import LazyPassDecorator
 
 load_dotenv()
 
+# Debug mode
+AIRCMD_DEBUG = getenv("AIRCMD_DEBUG", False)
+
 # Create a global context
-gctx = GlobalContext()
+gctx = GlobalContext(debug=AIRCMD_DEBUG)
 
 # Create a Click context
 global_context = LazyPassDecorator(GlobalContext, ensure=True)

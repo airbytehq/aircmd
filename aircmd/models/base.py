@@ -104,7 +104,7 @@ class GlobalContext(BaseModel, Singleton):
     class Config:
         arbitrary_types_allowed = True
 
-    def __init__(self, plugin_manager: Optional[PluginManager] = None, _click_context: Optional[Context] = None, **data: Any):
+    def __init__(self, plugin_manager: Optional[PluginManager] = None, _click_context: Optional[Context] = None, debug=False, **data: Any):
         if plugin_manager is None:
-            plugin_manager = PluginManager()
+            plugin_manager = PluginManager(debug=debug)
         super().__init__(plugin_manager=plugin_manager, _click_context=_click_context, **data)

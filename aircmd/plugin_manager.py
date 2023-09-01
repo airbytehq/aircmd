@@ -4,6 +4,7 @@ import importlib.metadata as metadata
 import json
 import os
 import pathlib
+import traceback
 from typing import TYPE_CHECKING, Any, Dict, List
 
 from pydantic import BaseModel, Field
@@ -17,9 +18,11 @@ class PluginManager(BaseModel):
     PLUGIN_DIR: pathlib.Path = pathlib.Path(os.path.expanduser("~/.aircmd"))
 
     plugins: Dict[str, Any] = Field(default_factory=dict)
+    debug: bool = Field(default=False)
 
-    def __init__(self, **data: Any) -> None:
+    def __init__(self, debug: bool = False, **data: Any) -> None:
         super().__init__(**data)
+        self.debug = debug
         self.discover()
 
     def discover(self) -> None:
@@ -36,8 +39,13 @@ class PluginManager(BaseModel):
                     plugin = entry_point.load()  # store the loaded plugin in a variable
             except Exception as e:
                 print(f"Failed to load plugin {plugin_name}: {e}")
+                print("Ensure that you are running aircmd in the root of your project and that your plugin is correctly configured")
+                print("For detailed debugging information, run `AIRCMD_DEBUG=True aircmd`")
+                if self.debug:
+                    stack_trace = traceback.format_exc()
+                    print(f"Stack trace:\n{stack_trace}")
                 continue
-            
+
             self.plugins[plugin_name] = plugin  # store the loaded plugin instead of its name
 
     def refresh(self) -> None:
@@ -81,5 +89,10 @@ class PluginManager(BaseModel):
                     command_groups.append(group)  
             except Exception as e:
                 print(f"Failed to load plugin {plugin_name} with error: {e}")
-    
+                print("Ensure that you are running aircmd in the root of your project and that your plugin is correctly configured")
+                print("For detailed debugging information, run `AIRCMD_DEBUG=True aircmd`")
+                if self.debug:
+                    stack_trace = traceback.format_exc()
+                    print(f"Stack trace:\n{stack_trace}")
+
         return command_groups
