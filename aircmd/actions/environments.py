@@ -316,6 +316,7 @@ def with_gradle(
     context: PipelineContext,
     settings: GlobalSettings,
     sources_to_include: Optional[List[str]] = None,
+    sources_to_exclude: Optional[List[str]] = None,
     bind_to_docker_host: bool = True,
     directory: Optional[str] = None,
 ) -> Container:
@@ -352,10 +353,16 @@ def with_gradle(
         "tools/lib/lib.sh"
     ]
 
+    exclude = ["buildSrc/.gradle", "ci/**"]
+
     if sources_to_include:
         include += sources_to_include
 
+    if sources_to_exclude:
+        exclude += sources_to_exclude
+
     include = [directory + "/" + x for x in include] if directory else include
+    exclude = [directory + "/" + x for x in exclude] if directory else exclude
 
     gradle_cache: CacheVolume = client.cache_volume("gradle-cache")
 
@@ -368,7 +375,7 @@ def with_gradle(
         .with_env_variable("GRADLE_HOME", "/root/.gradle")
         .with_exec(["mkdir", "/airbyte"])
         .with_workdir("/airbyte")
-        .with_mounted_directory("/airbyte", get_repo_dir(client, settings, ".", include=include))
+        .with_directory("/airbyte", get_repo_dir(client, settings, ".", include=include, exclude = exclude))
         .with_exec(["mkdir", "-p", "/root/.gradle"])
         .with_mounted_cache("/root/gradle-cache", gradle_cache, sharing=CacheSharingMode.LOCKED)
         .with_exec(["rsync", "-az", "/root/gradle-cache/", "/root/.gradle"])
