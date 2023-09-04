@@ -17,7 +17,11 @@ from dagger import CacheSharingMode, CacheVolume, Client, Container, Directory, 
 from ..models.base import PipelineContext
 from ..models.settings import GithubActionsInputSettings, GlobalSettings, load_settings
 from .constants import CRANE_DEBUG_IMAGE, PYTHON_IMAGE
-from .pipelines import get_file_contents, get_repo_dir
+from .pipelines import (
+    get_file_contents,
+    get_repo_dir,
+    sync_from_gradle_cache_to_homedir,
+)
 from .strings import slugify
 
 
@@ -372,13 +376,13 @@ def with_gradle(
         .with_exec(["bin/bash", "-c", "apt-get update && apt-get install -y curl jq rsync nodejs npm"]) # we use prettier in java builds unfortunately
         .with_env_variable("VERSION", settings.DOCKER_VERSION)
         .with_exec(["sh", "-c", "curl -fsSL https://get.docker.com | sh"])
-        .with_env_variable("GRADLE_HOME", "/root/.gradle")
+        .with_env_variable("GRADLE_HOME", settings.GRADLE_HOMEDIR_PATH)
         .with_exec(["mkdir", "/airbyte"])
         .with_workdir("/airbyte")
         .with_directory("/airbyte", get_repo_dir(client, settings, ".", include=include, exclude = exclude))
-        .with_exec(["mkdir", "-p", "/root/.gradle"])
-        .with_mounted_cache("/root/gradle-cache", gradle_cache, sharing=CacheSharingMode.LOCKED)
-        .with_exec(["rsync", "-az", "/root/gradle-cache/", "/root/.gradle"])
+        .with_exec(["mkdir", "-p", settings.GRADLE_HOMEDIR_PATH])
+        .with_mounted_cache(settings.GRADLE_CACHE_VOLUME_PATH, gradle_cache, sharing=CacheSharingMode.LOCKED)
+        .with_(sync_from_gradle_cache_to_homedir(settings.GRADLE_CACHE_VOLUME_PATH, settings.GRADLE_HOMEDIR_PATH))
     )
 
     if bind_to_docker_host:

@@ -108,9 +108,8 @@ class GlobalSettings(BaseSettings, Singleton):
     DOCKER_VERSION:str = Field("20.10.23", env="DOCKER_VERSION")
     DOCKER_DIND_IMAGE: str = Field("docker:dind", env="DOCKER_DIND_IMAGE")
     DOCKER_CLI_IMAGE: str = Field("docker:cli", env="DOCKER_CLI_IMAGE")
-    GRADLE_CACHE_PATH: str = Field("/root/.gradle", env="GRADLE_CACHE_PATH")
-    GRADLE_BUILD_CACHE_PATH: str = Field(f"{GRADLE_CACHE_PATH}/build-cache-1", env="GRADLE_BUILD_CACHE_PATH")
-    GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH: str = Field("/root/gradle_dependency_cache", env="GRADLE_READ_ONLY_DEPENDENCY_CACHE_PATH")
+    GRADLE_HOMEDIR_PATH: str = Field("/root/.gradle", env="GRADLE_HOMEDIR_PATH")
+    GRADLE_CACHE_VOLUME_PATH: str = Field("/root/gradle-cache", env="GRADLE_CACHE_VOLUME_PATH")
 
     PREFECT_API_URL: str = Field("http://127.0.0.1:4200/api", env="PREFECT_API_URL")
     PREFECT_COMMA_DELIMITED_USER_TAGS: str = Field("", env="PREFECT_COMMA_DELIMITED_USER_TAGS")

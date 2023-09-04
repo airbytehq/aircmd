@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from dagger import Client, Container, Directory, QueryError
 
@@ -48,7 +48,19 @@ async def get_file_contents(container: Container, path: str) -> Optional[str]:
         return await container.file(path).contents()
     except QueryError as e:
         if "no such file or directory" not in str(e):
-            # this is the hicky bit of the stopgap because
+            # this is the hacky bit of the stopgap because
             # this error could come from a network issue
             raise
     return None
+
+def sync_from_gradle_cache_to_homedir(cache_volume_location: str, gradle_home_dir: str) -> Callable[[Container], Container]:
+    def sync_cache(ctr: Container) -> Container:
+        ctr.with_exec(["rsync", "-az", cache_volume_location, gradle_home_dir])
+        return ctr
+    return sync_cache
+
+def sync_to_gradle_cache_from_homedir(cache_volume_location: str, gradle_home_dir: str) -> Callable[[Container], Container]:
+    def sync_cache(ctr: Container) -> Container:
+        ctr.with_exec(["rsync", "-az", "--delete", gradle_home_dir, cache_volume_location])
+        return ctr
+    return sync_cache
