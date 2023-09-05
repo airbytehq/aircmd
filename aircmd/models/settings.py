@@ -70,6 +70,7 @@ class GlobalSettings(BaseSettings, Singleton):
     CI: bool = Field(False, env="CI")
     LOG_LEVEL: str = Field("WARNING", env="LOG_LEVEL")
     PLATFORM: str = platform.system()
+    DEBUG: bool = Field(False, env="AIRCMD_DEBUG")
 
     # https://github.com/actions/toolkit/blob/7b617c260dff86f8d044d5ab0425444b29fa0d18/packages/github/src/context.ts#L6
     GITHUB_EVENT_NAME: str = Field("push", env="GITHUB_EVENT_NAME")
