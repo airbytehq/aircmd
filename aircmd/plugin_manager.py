@@ -21,8 +21,7 @@ class PluginManager(BaseModel):
     debug: bool = Field(default=False)
 
     def __init__(self, debug: bool = False, **data: Any) -> None:
-        super().__init__(**data)
-        self.debug: bool = debug
+        super().__init__(debug=debug, **data)
         self.discover()
 
     def discover(self) -> None:

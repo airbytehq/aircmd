@@ -17,7 +17,7 @@ from .models.click_utils import LazyPassDecorator
 load_dotenv()
 
 # Debug mode
-AIRCMD_DEBUG: bool = getenv("AIRCMD_DEBUG", False)
+AIRCMD_DEBUG: bool = bool(getenv("AIRCMD_DEBUG", False))
 
 # Create a global context
 gctx = GlobalContext(debug=AIRCMD_DEBUG)
