@@ -43,12 +43,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
       - name: Run Dagger
+        env: #TODO: Don't use GHA secrets for this
+          SECRET_DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          SECRET_DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+          PREFECT_API_URL: "https://prefect.airbyte.com/api"
+          _EXPERIMENTAL_DAGGER_CLOUD_TOKEN: "p.eyJ1IjogIjFiZjEwMmRjLWYyZmQtNDVhNi1iNzM1LTgxNzI1NGFkZDU2ZiIsICJpZCI6ICJlNjk3YzZiYy0yMDhiLTRlMTktODBjZC0yNjIyNGI3ZDBjMDEifQ.hT6eMOYt3KZgNoVGNYI3_v4CC-s19z8uQsBkGrBhU3k"
+          _EXPERIMENTAL_DAGGER_RUNNER_HOST: "unix:///var/run/buildkit/buildkitd.sock"
+          DAGGER_CLI_COMMIT: "6ed6264f1c4efbf84d310a104b57ef1bc57d57b0"
         run: |
-          export PREFECT_API_URL="https://prefect.airbyte.com/api"
-          export _EXPERIMENTAL_DAGGER_CLOUD_TOKEN="p.eyJ1IjogIjFiZjEwMmRjLWYyZmQtNDVhNi1iNzM1LTgxNzI1NGFkZDU2ZiIsICJpZCI6ICJlNjk3YzZiYy0yMDhiLTRlMTktODBjZC0yNjIyNGI3ZDBjMDEifQ.hT6eMOYt3KZgNoVGNYI3_v4CC-s19z8uQsBkGrBhU3k"
-          export _EXPERIMENTAL_DAGGER_RUNNER_HOST="unix:///var/run/buildkit/buildkitd.sock"
-          DAGGER_CLI_COMMIT="6ed6264f1c4efbf84d310a104b57ef1bc57d57b0"
-          DAGGER_TMP_BINDIR="/tmp/dagger_${DAGGER_CLI_COMMIT}"
+          export DAGGER_TMP_BINDIR="/tmp/dagger_${DAGGER_CLI_COMMIT}"
           export _EXPERIMENTAL_DAGGER_CLI_BIN="$DAGGER_TMP_BINDIR/dagger"
           if [ ! -f  "$_EXPERIMENTAL_DAGGER_CLI_BIN" ]; then
             mkdir -p "$DAGGER_TMP_BINDIR"
