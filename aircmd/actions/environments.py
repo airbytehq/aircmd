@@ -224,7 +224,7 @@ def with_dockerd_service(
         client.container()
         .from_(settings.DOCKER_DIND_IMAGE)
         .with_(load_settings(client, settings))
-        .with_exec(["docker", "login", "-u", "$SECRET_DOCKER_HUB_USERNAME", "-p","$SECRET_DOCKER_HUB_PASSWORD"])
+        .with_exec(["sh", "-c", "docker login -u $SECRET_DOCKER_HUB_USERNAME -p $SECRET_DOCKER_HUB_PASSWORD"])
         .with_mounted_cache(
             "/var/lib/docker",
             client.cache_volume(docker_lib_volume_name),
