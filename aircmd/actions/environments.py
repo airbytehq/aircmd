@@ -224,7 +224,7 @@ def with_dockerd_service(
         client.container()
         .from_(settings.DOCKER_DIND_IMAGE)
         .with_(load_settings(client, settings))
-        .with_exec(["docker", "login", "-u", "$SECRET_DOCKER_HUB_USERNAME", "-p","$SECRET_DOCKER_HUB_PASSWORD"])
+        .with_exec(["sh", "-c", "docker login -u $SECRET_DOCKER_HUB_USERNAME -p $SECRET_DOCKER_HUB_PASSWORD"])
         .with_mounted_cache(
             "/var/lib/docker",
             client.cache_volume(docker_lib_volume_name),
@@ -258,6 +258,30 @@ def with_bound_docker_host(
         container.with_env_variable("DOCKER_HOST", f"tcp://{docker_hostname}:2375")
         .with_service_binding(docker_hostname, dockerd)
         .with_mounted_cache("/tmp", client.cache_volume("shared-tmp"))
+    )
+
+def with_bound_docker_host_and_authenticated_client(
+    context: PipelineContext,
+    settings: GlobalSettings,
+    client: Client,
+    container: Container,
+) -> Container:
+    """Extends `with_bound_docker_host` with an authenticated docker client.
+    Args:
+        context (ConnectorContext): The current connector context.
+        settings (GlobalSettings): The global settings object
+        container (Container): The container to bind to the docker host.
+    Returns:
+        Container: The container bound to the docker host.
+    """
+    docker_username = client.set_secret("docker_hub_username", settings.SECRET_DOCKER_HUB_USERNAME.get_secret_value()) # type: ignore[union-attr]
+    docker_password = client.set_secret("docker_hub_password", settings.SECRET_DOCKER_HUB_PASSWORD.get_secret_value()) # type: ignore[union-attr]
+
+    return (
+        with_bound_docker_host(context, client, container)
+        .with_secret_variable("DOCKER_USERNAME", docker_username)
+        .with_secret_variable("DOCKER_PASSWORD", docker_password)
+        .with_exec(["sh", "-c", "docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD"])
     )
 
 
@@ -386,7 +410,7 @@ def with_gradle(
     )
 
     if bind_to_docker_host:
-        return with_bound_docker_host(context, client, openjdk_with_docker)
+        return with_bound_docker_host_and_authenticated_client(context, settings, client, openjdk_with_docker)
     else:
         return openjdk_with_docker
 
