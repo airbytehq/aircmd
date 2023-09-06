@@ -274,8 +274,8 @@ def with_bound_docker_host_and_authenticated_client(
     Returns:
         Container: The container bound to the docker host.
     """
-    docker_username = client.set_secret("docker_hub_username", settings.SECRET_DOCKER_HUB_USERNAME.get_secret_value())
-    docker_password = client.set_secret("docker_hub_password", settings.SECRET_DOCKER_HUB_PASSWORD.get_secret_value())
+    docker_username = client.set_secret("docker_hub_username", settings.SECRET_DOCKER_HUB_USERNAME.get_secret_value()) # type: ignore[union-attr]
+    docker_password = client.set_secret("docker_hub_password", settings.SECRET_DOCKER_HUB_PASSWORD.get_secret_value()) # type: ignore[union-attr]
 
     return (
         with_bound_docker_host(context, client, container)
