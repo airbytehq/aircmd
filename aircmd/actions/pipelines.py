@@ -55,12 +55,13 @@ async def get_file_contents(container: Container, path: str) -> Optional[str]:
 
 def sync_from_gradle_cache_to_homedir(cache_volume_location: str, gradle_home_dir: str) -> Callable[[Container], Container]:
     def sync_cache(ctr: Container) -> Container:
-        ctr.with_exec(["rsync", "-az", cache_volume_location, gradle_home_dir])
+        ctr = ctr.with_exec(["ls", "-la", cache_volume_location])
+        ctr = ctr.with_exec(["rsync", "-az", cache_volume_location, gradle_home_dir])
         return ctr
     return sync_cache
 
 def sync_to_gradle_cache_from_homedir(cache_volume_location: str, gradle_home_dir: str) -> Callable[[Container], Container]:
     def sync_cache(ctr: Container) -> Container:
-        ctr.with_exec(["rsync", "-az", "--delete", gradle_home_dir, cache_volume_location])
+        ctr = ctr.with_exec(["rsync", "-az", "--delete", gradle_home_dir, cache_volume_location])
         return ctr
     return sync_cache
