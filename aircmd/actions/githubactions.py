@@ -1,5 +1,10 @@
 from typing import Any, Dict
 
+from github import Github
+from prefect import Flow, State
+from prefect import settings as prefect_settings
+from prefect.client.schemas.objects import FlowRun
+
 from aircmd.models.settings import GlobalSettings
 
 
@@ -92,3 +97,37 @@ class MockPayloadBuilder:
                 # TODO: Add a way to specify these inputs when constructing the mock payload.
             }
         }
+
+def create_status(settings: GlobalSettings, sha: str, state: str, context: str, description: str, target_url: str) -> None:
+    g = Github(str(settings.GITHUB_TOKEN.get_secret_value() if settings.GITHUB_TOKEN else None))
+    repo = g.get_repo(settings.GIT_REPOSITORY)
+    
+    repo.get_commit(sha).create_status(
+        state=state,  # "error", "failure", "pending", or "success"
+        target_url=target_url,
+        description=description,
+        context=context
+    )
+
+def github_status_update_hook(flow: Flow[Any, Any], flow_run: FlowRun, state: State[Any] | None) -> None:
+    settings = GlobalSettings()
+    sha = settings.GIT_CURRENT_REVISION
+    assert flow_run.state is not None
+    assert state is not None
+    target_url = f"{prefect_settings.PREFECT_UI_URL.value()}/flow-runs/flow-run/{flow_run.state.state_details.flow_run_id}"
+    context = flow.name
+
+    if state.is_cancelled():
+        status = "error"
+        description = "This check was cancelled."
+    elif state.is_failed():
+        status = "failure"
+        description = "This check failed."
+    elif state.is_completed():
+        status = "success"
+        description = "This check succeeded."
+    else:
+        status = "pending"
+        description = "This check is pending."
+    
+    create_status(settings, sha, status, context, description, target_url)

@@ -15,6 +15,7 @@ class Singleton:
     _initialized: dict[Type['Singleton'], bool] = {}
 
     def __new__(cls: Type['Singleton'], *args: Any, **kwargs: Any) -> Any:
+
         if cls not in cls._instances:
             cls._instances[cls] = super().__new__(cls)
             cls._initialized[cls] = False
