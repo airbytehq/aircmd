@@ -14,8 +14,6 @@ from ..models.settings import GlobalSettings
 
 plugin_group = ClickGroup(group_name="plugin", group_help="Commands for managing plugins")
 
-#logger = structlog.get_logger()
-
 pass_global_context = LazyPassDecorator(GlobalContext, ensure=True)
 pass_global_settings = LazyPassDecorator(GlobalSettings, ensure=True)
 

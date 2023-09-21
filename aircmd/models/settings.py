@@ -12,7 +12,7 @@ from .singleton import Singleton
 
 def get_git_revision() -> str:
     repo = Repository(".") 
-    commit_hash:str = repo.revparse_single("HEAD").short_id
+    commit_hash:str = os.environ.get("LAST_COMMIT_SHA", repo.revparse_single("HEAD").hex )
     return commit_hash
 
 def get_current_branch() -> str:    
@@ -21,17 +21,17 @@ def get_current_branch() -> str:
                                                                                                                                                                                                 
 def get_latest_commit_message() -> str:   
     repo = Repository(".")                                                                                                                                                                                                                                                                                                                      
-    commit: Commit = repo[repo.head.target]                                                                                                                                                              
+    commit: Commit = repo[os.environ.get("LAST_COMMIT_SHA", repo.head.target)]                                                                                                                                                             
     return str(commit.message)                                                                                                                                                                   
                                                                                                                                                                                                 
 def get_latest_commit_author() -> str:  
     repo: Repository = Repository(".")                                                                                                                                                                                                                                                                                                                       
-    commit: Commit = repo[repo.head.target]                                                                                                                                                              
+    commit: Commit = repo[os.environ.get("LAST_COMMIT_SHA", repo.head.target)]                                                                                                                                                              
     return str(commit.author.name)                                                                                                                                                               
                                                                                                                                                                                                 
 def get_latest_commit_time() -> str:    
     repo = Repository(".")                                                                                                                                                                                                                                                                                                                      
-    commit: Commit = repo[repo.head.target]                                                                                                                                                              
+    commit: Commit = repo[os.environ.get("LAST_COMMIT_SHA", repo.head.target)]                                                                                                                                                              
     return str(commit.commit_time)       
 
 def get_repo_root_path() -> str:
@@ -59,7 +59,7 @@ def get_repo_fullname() -> str:
 # Immutable. Use this for application configuration. Created at bootstrap.
 class GlobalSettings(BaseSettings, Singleton):
     DAGGER: bool = Field(True, env="DAGGER")  
-    GITHUB_TOKEN: Optional[SecretStr] = Field(None, env="GITHUB_TOKEN")
+    GITHUB_TOKEN: Optional[SecretStr] = Field(None, env="GITHUB_CUSTOM_TOKEN")
     GIT_CURRENT_REVISION: str = Field(default_factory=get_git_revision)                                                                                                                                  
     GIT_CURRENT_BRANCH: str = Field(default_factory=get_current_branch)                                                                                                                              
     GIT_LATEST_COMMIT_MESSAGE: str = Field(default_factory=get_latest_commit_message)                                                                                                                

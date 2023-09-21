@@ -18,6 +18,7 @@ load_dotenv()
 # Create a global context
 gctx = GlobalContext()
 
+
 # Create a Click context
 global_context = LazyPassDecorator(GlobalContext, ensure=True)
 
