@@ -4,6 +4,7 @@ from github import Github
 from prefect import Flow, State
 from prefect import settings as prefect_settings
 from prefect.client.schemas.objects import FlowRun
+from prefect.context import FlowRunContext
 
 from aircmd.models.settings import GlobalSettings
 
@@ -117,17 +118,22 @@ def github_status_update_hook(flow: Flow[Any, Any], flow_run: FlowRun, state: St
     target_url = f"{prefect_settings.PREFECT_UI_URL.value()}/flow-runs/flow-run/{flow_run.state.state_details.flow_run_id}"
     context = flow.name
 
+    flow_run_context = FlowRunContext.get()
+    description = "This check failed. Click details to see logs"
+    if flow_run_context is not None:
+        description = "This check failed because an upstream task failed"
+
     if state.is_cancelled():
         status = "error"
         description = "This check was cancelled."
     elif state.is_failed():
         status = "failure"
-        description = "This check failed."
+        description = "This check failed because an upstream task failed"
     elif state.is_completed():
         status = "success"
         description = "This check succeeded."
     else:
         status = "pending"
-        description = "This check is pending."
-    
+        description = "This check is in flight."
+
     create_status(settings, sha, status, context, description, target_url)
