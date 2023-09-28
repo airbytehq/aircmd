@@ -22,7 +22,7 @@ jobs:
   aircmd_ci:
     name: aircmd core ci
     timeout-minutes: 60
-    runs-on: platform-xlarge-runner
+    runs-on: dev-medium-runner
     steps:
       - name: Login to DockerHub
         run: "docker login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD}"
