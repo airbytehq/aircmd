@@ -95,7 +95,6 @@ class GlobalSettings(BaseSettings, Singleton):
             ".git",
             "**/build",
             "**/.venv",
-            "**/secrets",
             "**/__pycache__",
             "**/*.egg-info",
             "**/.vscode",
